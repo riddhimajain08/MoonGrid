@@ -65,9 +65,8 @@ const WORKFLOW_STEPS = [
     bgBadge: 'bg-amber-500/10 border-amber-500/30 text-amber-300',
     desc: 'Computer vision segmentation networks classify micro-craters, steep slopes, boulder fields, and deep shadows.',
     bulletPoints: [
-      'Detect steep slope gradients ≥ 10°',
-      'Detect crater rims, depth & diameter profiles',
-      'Detect boulder distribution & shadow occlusion layers'
+      'Detect steep slope gradients',
+      'Detect crater rims, depth & diameter profiles'
     ],
     tech: ['YOLO', 'U-Net', 'SegFormer', 'OpenCV']
   },
@@ -110,7 +109,7 @@ const WORKFLOW_STEPS = [
 const TECH_STACK_CATEGORIES = [
   {
     category: 'AI / ML & Computer Vision',
-    icon: '🧠',
+    icon: '🤖',
     techs: ['PyTorch', 'SwinIR / ESRGAN', 'U-Net / SegFormer', 'YOLO v8', 'OpenCV', 'NumPy', 'Scikit-Learn']
   },
   {
@@ -125,7 +124,7 @@ const TECH_STACK_CATEGORIES = [
   },
   {
     category: 'Frontend & 3D Visualization',
-    icon: '🚀',
+    icon: '🎨',
     techs: ['Next.js (React 19)', 'TypeScript', 'Tailwind CSS', 'CesiumJS 3D', 'Spline 3D']
   }
 ];
@@ -145,10 +144,10 @@ export default function WorkflowTechStack() {
           <span className="text-xs font-mono tracking-widest text-cyan-300 uppercase">System Architecture & Pipeline</span>
         </div>
         <h2 className="text-4xl md:text-5xl font-black font-heading tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white via-blue-100 to-cyan-300">
-          LUNAR HAZARD MAPPING WORKFLOW
+          LUNAR HAZARD MAPPING
         </h2>
         <p className="mt-3 text-gray-400 font-light max-w-2xl mx-auto text-sm md:text-base">
-          End-to-End Geospatial AI Pipeline: From 5m orbital imagery ingestion to 1m super-resolution hazard detection and 3D lander navigation.
+        
         </p>
       </div>
 
@@ -228,7 +227,7 @@ export default function WorkflowTechStack() {
             {stepData.id === 1 && (
               <div className="space-y-3 text-center">
                 <div className="w-16 h-16 rounded-full bg-blue-500/20 border border-blue-400/50 flex items-center justify-center mx-auto animate-pulse">
-                  <span className="text-3xl">📡</span>
+                  <span className="text-3xl"> F </span>
                 </div>
                 <div className="text-xs font-mono text-blue-300">5m TMC Sensor Feed</div>
                 <div className="text-[0.65rem] text-gray-400 bg-blue-950/60 px-3 py-1 rounded border border-blue-500/30">PostgreSQL / PostGIS Cloud Sync Active</div>
