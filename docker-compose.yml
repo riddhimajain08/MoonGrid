@@ -1,0 +1,25 @@
+# Spins up a Postgres+PostGIS database for MoonGrid.
+# Run: docker compose up -d
+# Then run the FastAPI app normally (uvicorn app.main:app --reload).
+#
+# NOTE: mapped to host port 5433 (not the default 5432) to avoid clashing
+# with a native/local Postgres install some machines already have running
+# on 5432. The app's default DATABASE_URL in app/db.py already points at
+# 5433, so no .env is required for local dev — it just works.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: moongrid-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: moongrid_dev
+      POSTGRES_DB: moongrid
+    ports:
+      - "5433:5432"
+    volumes:
+      - moongrid_pgdata:/var/lib/postgresql/data
+
+volumes:
+  moongrid_pgdata:
