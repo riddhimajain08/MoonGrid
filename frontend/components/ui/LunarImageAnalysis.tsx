@@ -24,9 +24,43 @@ interface PipelineStage {
   durationMs: number;
 }
 
+export interface BackendPredictResponse {
+  processing_time_ms: number;
+  original_resolution_m: number;
+  enhanced_resolution_m: number;
+  super_res_image_url: string;
+  original_image_url: string;
+  hazards: {
+    craters: Array<{ x: number; y: number; width: number; height: number; confidence: number }>;
+    boulders: Array<{ x: number; y: number; width: number; height: number; confidence: number }>;
+    slope_zones: Array<{ x: number; y: number; width: number; height: number; avg_slope_deg: number }>;
+    shadow_zones: Array<{ x: number; y: number; width: number; height: number }>;
+  };
+  risk_map_url: string;
+  safe_zones: Array<{
+    id: string;
+    x: number;
+    y: number;
+    radius_px: number;
+    risk_score: number;
+    rank: number;
+    area_m2: number;
+  }>;
+  recommended_zone_id: string;
+  landing_path: {
+    waypoints: Array<{ x: number; y: number; altitude_m: number }>;
+  };
+  summary: {
+    total_craters: number;
+    total_boulders: number;
+    percent_safe: number;
+    percent_moderate: number;
+    percent_hazardous: number;
+  };
+}
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 const ACCEPTED_TYPES = ['.tif', '.tiff', '.jpg', '.jpeg', '.png'];
-const ACCEPTED_MIME = ['image/tiff', 'image/jpeg', 'image/png', 'image/jpg'];
 
 const PIPELINE_STAGES: PipelineStage[] = [
   {
@@ -39,7 +73,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
     borderColor: 'border-blue-500/40',
     textColor: 'text-blue-400',
     badgeColor: 'bg-blue-500/10 border-blue-500/30 text-blue-300',
-    durationMs: 1800,
+    durationMs: 1200,
   },
   {
     id: 2,
@@ -51,7 +85,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
     borderColor: 'border-purple-500/40',
     textColor: 'text-purple-400',
     badgeColor: 'bg-purple-500/10 border-purple-500/30 text-purple-300',
-    durationMs: 2600,
+    durationMs: 1800,
   },
   {
     id: 3,
@@ -63,7 +97,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
     borderColor: 'border-orange-500/40',
     textColor: 'text-orange-400',
     badgeColor: 'bg-orange-500/10 border-orange-500/30 text-orange-300',
-    durationMs: 2200,
+    durationMs: 1500,
   },
   {
     id: 4,
@@ -75,7 +109,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
     borderColor: 'border-yellow-500/40',
     textColor: 'text-yellow-400',
     badgeColor: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300',
-    durationMs: 1400,
+    durationMs: 1000,
   },
   {
     id: 5,
@@ -87,28 +121,25 @@ const PIPELINE_STAGES: PipelineStage[] = [
     borderColor: 'border-emerald-500/40',
     textColor: 'text-emerald-400',
     badgeColor: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300',
-    durationMs: 1200,
+    durationMs: 800,
   },
 ];
 
-// ─── Mock results ─────────────────────────────────────────────────────────────
-const MOCK_RESULTS = {
-  craters: { count: 14, maxDiam: '42m', risk: 'high' },
-  boulders: { count: 7, maxSize: '3.2m', risk: 'medium' },
-  slope: { maxDeg: '11.4°', avgDeg: '4.7°', risk: 'medium' },
-  shadow: { coverage: '18%', risk: 'low' },
-  overallRisk: 28,
-  safeZone: { lat: '18.4°S', lon: '77.1°E', radius: '38m', confidence: '91%' },
-};
-
-// ─── Utility ──────────────────────────────────────────────────────────────────
+// ─── Utility Functions ────────────────────────────────────────────────────────
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-// ─── HazardBar ────────────────────────────────────────────────────────────────
+function getFullUrl(path?: string): string {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+  return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+}
+
+// ─── Sub-Components ───────────────────────────────────────────────────────────
 function HazardBar({ label, value, color }: { label: string; value: number; color: string }) {
   const [width, setWidth] = useState(0);
   useEffect(() => {
@@ -131,7 +162,6 @@ function HazardBar({ label, value, color }: { label: string; value: number; colo
   );
 }
 
-// ─── RiskGauge ────────────────────────────────────────────────────────────────
 function RiskGauge({ score }: { score: number }) {
   const color = score < 35 ? 'text-emerald-400' : score < 65 ? 'text-yellow-400' : 'text-red-400';
   const label = score < 35 ? 'LOW RISK' : score < 65 ? 'MODERATE' : 'HIGH RISK';
@@ -156,12 +186,11 @@ function RiskGauge({ score }: { score: number }) {
   );
 }
 
-// ─── HazardGrid ───────────────────────────────────────────────────────────────
 function HazardGrid() {
   const [cells] = useState(() =>
     Array.from({ length: 25 }, () => {
       const r = Math.random();
-      return r < 0.35 ? 'safe' : r < 0.55 ? 'caution' : r < 0.75 ? 'risky' : 'danger';
+      return r < 0.4 ? 'safe' : r < 0.6 ? 'caution' : r < 0.8 ? 'risky' : 'danger';
     })
   );
   const colorMap: Record<string, string> = {
@@ -189,6 +218,8 @@ export default function LunarImageAnalysis() {
   const [showResults, setShowResults] = useState(false);
   const [stageProgress, setStageProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [apiResponse, setApiResponse] = useState<BackendPredictResponse | null>(null);
+  const [isLiveBackend, setIsLiveBackend] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadFile = useCallback((file: File) => {
@@ -209,6 +240,7 @@ export default function LunarImageAnalysis() {
       type: ext.toUpperCase().replace('.', ''),
     });
     setShowResults(false);
+    setApiResponse(null);
     setCompletedStages(new Set());
     setCurrentStage(-1);
   }, []);
@@ -229,12 +261,28 @@ export default function LunarImageAnalysis() {
     if (!uploadedFile || isProcessing) return;
     setIsProcessing(true);
     setShowResults(false);
+    setError(null);
     setCompletedStages(new Set());
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+    const formData = new FormData();
+    formData.append('image', uploadedFile.file);
+
+    // Initiate API call concurrently with pipeline animations
+    const fetchPredict = fetch(`${API_URL}/predict`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    let backendData: BackendPredictResponse | null = null;
+    let liveSuccess = false;
+
+    // Run visually animated stages
     for (let i = 0; i < PIPELINE_STAGES.length; i++) {
       const stage = PIPELINE_STAGES[i];
       setCurrentStage(i);
       setStageProgress(0);
-      const steps = 30;
+      const steps = 20;
       const stepTime = stage.durationMs / steps;
       for (let s = 0; s <= steps; s++) {
         await new Promise((r) => setTimeout(r, stepTime));
@@ -242,6 +290,59 @@ export default function LunarImageAnalysis() {
       }
       setCompletedStages((prev) => new Set([...prev, i]));
     }
+
+    try {
+      const res = await fetchPredict;
+      if (res.ok) {
+        backendData = await res.json();
+        liveSuccess = true;
+      } else {
+        console.warn(`Backend returned HTTP ${res.status}`);
+      }
+    } catch (err) {
+      console.warn('Backend API not reachable at', API_URL, err);
+    }
+
+    if (backendData) {
+      setApiResponse(backendData);
+      setIsLiveBackend(liveSuccess);
+    } else {
+      // Fallback response structure if server is unreachable
+      setIsLiveBackend(false);
+      setApiResponse({
+        processing_time_ms: 3420,
+        original_resolution_m: 5,
+        enhanced_resolution_m: 1,
+        super_res_image_url: '',
+        original_image_url: '',
+        hazards: {
+          craters: Array.from({ length: 14 }, (_, i) => ({ x: 100 + i * 20, y: 150, width: 30, height: 30, confidence: 0.88 })),
+          boulders: Array.from({ length: 7 }, (_, i) => ({ x: 200 + i * 15, y: 220, width: 10, height: 10, confidence: 0.76 })),
+          slope_zones: [{ x: 50, y: 50, width: 120, height: 100, avg_slope_deg: 11.4 }],
+          shadow_zones: [{ x: 300, y: 300, width: 80, height: 80 }],
+        },
+        risk_map_url: '',
+        safe_zones: [
+          { id: 'zone_1', x: 396, y: 396, radius_px: 38, risk_score: 0.08, rank: 1, area_m2: 1250 }
+        ],
+        recommended_zone_id: 'zone_1',
+        landing_path: {
+          waypoints: [
+            { x: 0, y: 0, altitude_m: 5000 },
+            { x: 198, y: 198, altitude_m: 2000 },
+            { x: 396, y: 396, altitude_m: 0 }
+          ]
+        },
+        summary: {
+          total_craters: 14,
+          total_boulders: 7,
+          percent_safe: 65,
+          percent_moderate: 22,
+          percent_hazardous: 13,
+        }
+      });
+    }
+
     setCurrentStage(-1);
     setIsProcessing(false);
     setShowResults(true);
@@ -251,8 +352,10 @@ export default function LunarImageAnalysis() {
   const [exportSuccess, setExportSuccess] = useState(false);
 
   const exportReport = useCallback(() => {
-    if (!uploadedFile) return;
+    if (!uploadedFile || !apiResponse) return;
     setIsExporting(true);
+
+    const recommendedZone = apiResponse.safe_zones.find(z => z.id === apiResponse.recommended_zone_id) || apiResponse.safe_zones[0];
 
     const reportData = {
       project: "MoonGrid — Autonomous Lunar Hazard Mapping & Safe Landing System",
@@ -261,54 +364,33 @@ export default function LunarImageAnalysis() {
         filename: uploadedFile.name,
         filesize: uploadedFile.size,
         format: uploadedFile.type,
-        nominal_spatial_resolution: "5.0m / pixel (TMC Orbital Sensor)",
-        enhanced_spatial_resolution: "1.0m / pixel (SwinIR / ESRGAN Super-Resolution)",
+        nominal_spatial_resolution: `${apiResponse.original_resolution_m}.0m / pixel (TMC Orbital Sensor)`,
+        enhanced_spatial_resolution: `${apiResponse.enhanced_resolution_m}.0m / pixel (SwinIR / ESRGAN Super-Resolution)`,
+        api_mode: isLiveBackend ? "LIVE_FASTAPI_BACKEND" : "SIMULATION_FALLBACK",
       },
       pipeline_execution: {
         status: "SUCCESS",
-        total_latency_ms: PIPELINE_STAGES.reduce((acc, s) => acc + s.durationMs, 0),
+        server_latency_ms: apiResponse.processing_time_ms,
         stages_completed: PIPELINE_STAGES.map(s => ({
           stage: s.label,
           module: s.sublabel,
-          execution_time_ms: s.durationMs,
         })),
       },
       hazard_analysis: {
-        craters: {
-          detected_count: MOCK_RESULTS.craters.count,
-          max_rim_diameter: MOCK_RESULTS.craters.maxDiam,
-          hazard_rating: MOCK_RESULTS.craters.risk.toUpperCase(),
-        },
-        boulders: {
-          detected_count: MOCK_RESULTS.boulders.count,
-          max_boulder_dimension: MOCK_RESULTS.boulders.maxSize,
-          hazard_rating: MOCK_RESULTS.boulders.risk.toUpperCase(),
-        },
-        slope_gradients: {
-          average_slope_deg: MOCK_RESULTS.slope.avgDeg,
-          maximum_slope_deg: MOCK_RESULTS.slope.maxDeg,
-          landing_safety_threshold: "< 10.0°",
-          hazard_rating: MOCK_RESULTS.slope.risk.toUpperCase(),
-        },
-        shadows: {
-          coverage_percentage: MOCK_RESULTS.shadow.coverage,
-          hazard_rating: MOCK_RESULTS.shadow.risk.toUpperCase(),
-        },
+        craters_detected: apiResponse.summary.total_craters,
+        boulders_detected: apiResponse.summary.total_boulders,
+        percent_safe: `${apiResponse.summary.percent_safe}%`,
+        percent_moderate: `${apiResponse.summary.percent_moderate}%`,
+        percent_hazardous: `${apiResponse.summary.percent_hazardous}%`,
       },
-      risk_score_matrix: {
-        overall_composite_risk: MOCK_RESULTS.overallRisk,
-        scale: "0 (Optimal / Safe) to 100 (Critical Hazard)",
-        classification: MOCK_RESULTS.overallRisk < 35 ? "LOW RISK / CLEARED FOR TOUCHDOWN" : "CAUTION",
-      },
-      optimal_landing_zone: {
-        coordinates: {
-          latitude: MOCK_RESULTS.safeZone.lat,
-          longitude: MOCK_RESULTS.safeZone.lon,
-        },
-        safe_touchdown_radius: MOCK_RESULTS.safeZone.radius,
-        confidence_metric: MOCK_RESULTS.safeZone.confidence,
-        spatial_reference: "EPSG:30100 (Moon 2000 Coordinate Reference System)",
-        recommendation: "TOUCHDOWN CLEARED — CONTIGUOUS LOW-RISK ELLIPSE VERIFIED",
+      recommended_landing_zone: {
+        zone_id: apiResponse.recommended_zone_id,
+        center_x: recommendedZone?.x,
+        center_y: recommendedZone?.y,
+        radius_px: recommendedZone?.radius_px,
+        area_m2: recommendedZone?.area_m2,
+        risk_score: recommendedZone?.risk_score,
+        touchdown_path_waypoints: apiResponse.landing_path.waypoints.length,
       },
     };
 
@@ -325,7 +407,7 @@ export default function LunarImageAnalysis() {
     setIsExporting(false);
     setExportSuccess(true);
     setTimeout(() => setExportSuccess(false), 3500);
-  }, [uploadedFile]);
+  }, [uploadedFile, apiResponse, isLiveBackend]);
 
   const resetAll = useCallback(() => {
     setUploadedFile(null);
@@ -333,11 +415,15 @@ export default function LunarImageAnalysis() {
     setCurrentStage(-1);
     setCompletedStages(new Set());
     setShowResults(false);
+    setApiResponse(null);
     setStageProgress(0);
     setError(null);
     setExportSuccess(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
+
+  const recZone = apiResponse?.safe_zones.find(z => z.id === apiResponse.recommended_zone_id) || apiResponse?.safe_zones[0];
+  const overallRiskScore = apiResponse ? Math.round(100 - apiResponse.summary.percent_safe) : 28;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
@@ -505,7 +591,7 @@ export default function LunarImageAnalysis() {
       )}
 
       {/* Results Dashboard */}
-      {showResults && uploadedFile && (
+      {showResults && uploadedFile && apiResponse && (
         <div className="space-y-6 animate-fade-in">
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -513,10 +599,12 @@ export default function LunarImageAnalysis() {
               <h3 className="font-heading font-black text-2xl text-white flex items-center gap-2">
                 <span>📊</span> Analysis Results
               </h3>
-              <p className="text-[0.65rem] font-mono text-emerald-400 mt-1 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Pipeline complete · {uploadedFile.name}
-              </p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <p className="text-[0.65rem] font-mono text-emerald-400">
+                  {isLiveBackend ? `FastAPI Server Connected (Latency: ${apiResponse.processing_time_ms}ms)` : `Simulated Pipeline Mode (FastAPI standard payload active)`} · {uploadedFile.name}
+                </p>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               {exportSuccess && (
@@ -544,9 +632,12 @@ export default function LunarImageAnalysis() {
             <div className="glass rounded-2xl border border-white/10 p-4 space-y-3">
               <p className="text-[0.65rem] font-mono text-gray-400 uppercase tracking-widest">Original Input</p>
               <div className="h-44 rounded-xl overflow-hidden bg-slate-950 border border-white/5 flex items-center justify-center">
-                {uploadedFile.preview ? (
+                {apiResponse.original_image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={uploadedFile.preview} alt="Original lunar image" className="w-full h-full object-cover" />
+                  <img src={getFullUrl(apiResponse.original_image_url)} alt="Original lunar image" className="w-full h-full object-cover" />
+                ) : uploadedFile.preview ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={uploadedFile.preview} alt="Original lunar image preview" className="w-full h-full object-cover" />
                 ) : (
                   <div className="flex flex-col items-center gap-3 opacity-50">
                     <span className="text-5xl">🛰️</span>
@@ -555,7 +646,7 @@ export default function LunarImageAnalysis() {
                 )}
               </div>
               <div className="text-[0.6rem] font-mono text-gray-500 flex justify-between">
-                <span>Resolution: 5m/px</span>
+                <span>Resolution: {apiResponse.original_resolution_m}m/px</span>
                 <span className="text-blue-400">{uploadedFile.type}</span>
               </div>
             </div>
@@ -564,11 +655,19 @@ export default function LunarImageAnalysis() {
             <div className="glass rounded-2xl border border-purple-500/20 p-4 space-y-3">
               <p className="text-[0.65rem] font-mono text-purple-400 uppercase tracking-widest">Super-Resolved Output</p>
               <div className="h-44 rounded-xl overflow-hidden bg-slate-950 border border-purple-500/10 relative flex items-center justify-center">
-                {uploadedFile.preview ? (
+                {apiResponse.super_res_image_url ? (
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={getFullUrl(apiResponse.super_res_image_url)} alt="Super-resolved output" className="w-full h-full object-cover" />
+                    <span className="absolute bottom-2 right-2 text-[0.55rem] font-mono text-purple-300 bg-black/60 px-2 py-0.5 rounded-full border border-purple-500/30 backdrop-blur-sm">
+                      SwinIR Enhanced
+                    </span>
+                  </>
+                ) : uploadedFile.preview ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={uploadedFile.preview} alt="Super-resolved output" className="w-full h-full object-cover"
-                      style={{ filter: 'contrast(1.12) brightness(1.05) saturate(1.1)' }} />
+                      style={{ filter: 'contrast(1.15) brightness(1.05) saturate(1.1)' }} />
                     <div className="absolute inset-0 bg-purple-900/10" />
                     <span className="absolute bottom-2 right-2 text-[0.55rem] font-mono text-purple-300 bg-black/50 px-2 py-0.5 rounded-full border border-purple-500/20 backdrop-blur-sm">
                       SwinIR Enhanced
@@ -582,26 +681,30 @@ export default function LunarImageAnalysis() {
                 )}
               </div>
               <div className="text-[0.6rem] font-mono text-gray-500 flex justify-between">
-                <span>Resolution: ~1m/px</span>
+                <span>Resolution: ~{apiResponse.enhanced_resolution_m}m/px</span>
                 <span className="text-purple-400">×5 Upscale</span>
               </div>
             </div>
 
-            {/* Hazard Grid Map */}
+            {/* Risk Map */}
             <div className="glass rounded-2xl border border-orange-500/20 p-4 space-y-3">
-              <p className="text-[0.65rem] font-mono text-orange-400 uppercase tracking-widest">Hazard Map (1m Grid)</p>
-              <div className="h-44 rounded-xl bg-slate-950 border border-orange-500/10 flex items-center justify-center p-4">
-                <div className="w-full"><HazardGrid /></div>
+              <p className="text-[0.65rem] font-mono text-orange-400 uppercase tracking-widest">Hazard Risk Map</p>
+              <div className="h-44 rounded-xl overflow-hidden bg-slate-950 border border-orange-500/10 relative flex items-center justify-center p-1">
+                {apiResponse.risk_map_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={getFullUrl(apiResponse.risk_map_url)} alt="Risk map output" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full"><HazardGrid /></div>
+                )}
               </div>
               <div className="flex gap-2 flex-wrap">
                 {[
-                  { color: 'bg-emerald-500', label: 'Safe' },
-                  { color: 'bg-yellow-500', label: 'Caution' },
-                  { color: 'bg-orange-500', label: 'Risky' },
-                  { color: 'bg-red-500', label: 'Danger' },
+                  { color: 'bg-emerald-500', label: `Safe (${apiResponse.summary.percent_safe}%)` },
+                  { color: 'bg-yellow-500', label: `Caution (${apiResponse.summary.percent_moderate}%)` },
+                  { color: 'bg-red-500', label: `Danger (${apiResponse.summary.percent_hazardous}%)` },
                 ].map(({ color, label }) => (
                   <span key={label} className="flex items-center gap-1 text-[0.55rem] font-mono text-gray-400">
-                    <span className={`w-2 h-2 rounded-sm ${color} opacity-70`} />{label}
+                    <span className={`w-2 h-2 rounded-sm ${color} opacity-80`} />{label}
                   </span>
                 ))}
               </div>
@@ -613,17 +716,17 @@ export default function LunarImageAnalysis() {
             {/* Hazard breakdown */}
             <div className="glass rounded-2xl border border-white/10 p-5">
               <p className="text-[0.65rem] font-mono text-gray-400 uppercase tracking-widest mb-4">Hazard Breakdown</p>
-              <HazardBar label="Crater Risk" value={72} color="bg-red-500" />
-              <HazardBar label="Boulder Risk" value={44} color="bg-orange-500" />
-              <HazardBar label="Slope Risk" value={38} color="bg-yellow-500" />
-              <HazardBar label="Shadow Coverage" value={18} color="bg-indigo-500" />
-              <HazardBar label="Terrain Roughness" value={55} color="bg-purple-500" />
+              <HazardBar label="Crater Distribution" value={Math.min(100, apiResponse.summary.total_craters * 5)} color="bg-red-500" />
+              <HazardBar label="Boulder Obstacles" value={Math.min(100, apiResponse.summary.total_boulders * 6)} color="bg-orange-500" />
+              <HazardBar label="Safe Area Coverage" value={apiResponse.summary.percent_safe} color="bg-emerald-500" />
+              <HazardBar label="Moderate Risk Terrain" value={apiResponse.summary.percent_moderate} color="bg-yellow-500" />
+              <HazardBar label="Hazard Zone Coverage" value={apiResponse.summary.percent_hazardous} color="bg-purple-500" />
               <div className="mt-4 grid grid-cols-2 gap-2 text-[0.6rem] font-mono">
                 {[
-                  { label: 'Craters', value: `${MOCK_RESULTS.craters.count} detected`, color: 'text-red-400' },
-                  { label: 'Boulders', value: `${MOCK_RESULTS.boulders.count} detected`, color: 'text-orange-400' },
-                  { label: 'Max Slope', value: MOCK_RESULTS.slope.maxDeg, color: 'text-yellow-400' },
-                  { label: 'Shadows', value: MOCK_RESULTS.shadow.coverage, color: 'text-indigo-400' },
+                  { label: 'Craters', value: `${apiResponse.summary.total_craters} detected`, color: 'text-red-400' },
+                  { label: 'Boulders', value: `${apiResponse.summary.total_boulders} detected`, color: 'text-orange-400' },
+                  { label: 'Safe Surface', value: `${apiResponse.summary.percent_safe}%`, color: 'text-emerald-400' },
+                  { label: 'Hazards', value: `${apiResponse.summary.percent_hazardous}%`, color: 'text-purple-400' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="bg-white/5 rounded-lg p-2">
                     <span className="text-gray-500 block uppercase tracking-widest">{label}</span>
@@ -636,7 +739,7 @@ export default function LunarImageAnalysis() {
             {/* Risk Gauge */}
             <div className="glass rounded-2xl border border-white/10 p-5 flex flex-col items-center justify-center gap-6">
               <p className="text-[0.65rem] font-mono text-gray-400 uppercase tracking-widest self-start">Overall Risk Score</p>
-              <RiskGauge score={MOCK_RESULTS.overallRisk} />
+              <RiskGauge score={overallRiskScore} />
               <div className="w-full space-y-2 text-[0.6rem] font-mono">
                 <div className="flex justify-between text-gray-500">
                   <span>0 — Safe</span><span>50 — Moderate</span><span>100 — Danger</span>
@@ -668,10 +771,10 @@ export default function LunarImageAnalysis() {
               </div>
               <div className="grid grid-cols-2 gap-2 text-[0.6rem] font-mono">
                 {[
-                  { label: 'Latitude', value: MOCK_RESULTS.safeZone.lat },
-                  { label: 'Longitude', value: MOCK_RESULTS.safeZone.lon },
-                  { label: 'Safe Radius', value: MOCK_RESULTS.safeZone.radius },
-                  { label: 'Confidence', value: MOCK_RESULTS.safeZone.confidence },
+                  { label: 'Zone ID', value: apiResponse.recommended_zone_id },
+                  { label: 'Grid Position', value: recZone ? `X:${recZone.x} Y:${recZone.y}` : 'X:396 Y:396' },
+                  { label: 'Safe Radius', value: recZone ? `${recZone.radius_px} px` : '38 px' },
+                  { label: 'Area', value: recZone ? `${recZone.area_m2} m²` : '1200 m²' },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-2">
                     <span className="text-gray-500 block uppercase tracking-widest">{label}</span>
@@ -680,7 +783,7 @@ export default function LunarImageAnalysis() {
                 ))}
               </div>
               <p className="text-[0.6rem] font-mono text-gray-500 text-center">
-                Avg slope {MOCK_RESULTS.slope.avgDeg} · No craters in safety radius
+                Waypoints: {apiResponse.landing_path.waypoints.length} descent points calculated
               </p>
             </div>
           </div>
