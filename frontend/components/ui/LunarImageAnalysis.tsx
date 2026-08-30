@@ -256,7 +256,23 @@ export default function LunarImageAnalysis() {
   const [loadingJobId, setLoadingJobId] = useState<string | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
 
+  // Lightbox Zoom state
+  const [lightboxImage, setLightboxImage] = useState<{ url: string; title: string; subtitle: string } | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut listener for Esc key to close lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setLightboxImage(null);
+        setZoomLevel(1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Fetch past prediction jobs
   const fetchJobs = useCallback(async () => {
@@ -429,9 +445,9 @@ export default function LunarImageAnalysis() {
         summary: {
           total_craters: 14,
           total_boulders: 0,
-          percent_safe: 65,
-          percent_moderate: 22,
-          percent_hazardous: 13,
+          percent_safe: 42,
+          percent_moderate: 18,
+          percent_hazardous: 40,
         }
       });
     }
@@ -514,6 +530,8 @@ export default function LunarImageAnalysis() {
     setStageProgress(0);
     setError(null);
     setExportSuccess(false);
+    setLightboxImage(null);
+    setZoomLevel(1);
     if (fileInputRef.current) fileInputRef.current.value = '';
   }, []);
 
@@ -522,6 +540,87 @@ export default function LunarImageAnalysis() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
+      {/* Lightbox Pop-Out Zoom Modal */}
+      {lightboxImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-4 md:p-6 animate-fade-in"
+          onClick={() => { setLightboxImage(null); setZoomLevel(1); }}
+        >
+          {/* Header Bar */}
+          <div
+            className="w-full max-w-6xl flex justify-between items-center z-10 glass px-6 py-3 rounded-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-base md:text-lg font-heading font-bold text-white tracking-wider flex items-center gap-2">
+                <span>🔍</span> {lightboxImage.title}
+              </h3>
+              <p className="text-xs font-mono text-cyan-400 mt-0.5">{lightboxImage.subtitle}</p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Zoom controls */}
+              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+                <button
+                  onClick={() => setZoomLevel(prev => Math.max(0.7, prev - 0.25))}
+                  className="px-3 py-1 text-xs font-mono font-bold text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                  title="Zoom Out"
+                >
+                  -
+                </button>
+                <span className="px-2 text-xs font-mono text-cyan-300 font-bold min-w-[50px] text-center">
+                  {Math.round(zoomLevel * 100)}%
+                </span>
+                <button
+                  onClick={() => setZoomLevel(prev => Math.min(3.5, prev + 0.25))}
+                  className="px-3 py-1 text-xs font-mono font-bold text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                  title="Zoom In"
+                >
+                  +
+                </button>
+                <button
+                  onClick={() => setZoomLevel(1)}
+                  className="px-2.5 py-1 text-[0.65rem] font-mono text-gray-400 hover:text-white transition-all border-l border-white/10"
+                >
+                  Reset
+                </button>
+              </div>
+
+              <button
+                onClick={() => { setLightboxImage(null); setZoomLevel(1); }}
+                className="px-4 py-2 rounded-xl text-xs font-mono bg-red-500/20 hover:bg-red-500/40 text-red-300 border border-red-500/40 font-bold transition-all flex items-center gap-1.5"
+              >
+                <span>✕</span> <span>Minimize</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Zoomable Image Container */}
+          <div
+            className="relative flex-1 w-full max-w-6xl my-4 overflow-auto flex items-center justify-center p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightboxImage.url}
+              alt={lightboxImage.title}
+              className="max-w-full max-h-[75vh] object-contain rounded-2xl shadow-2xl transition-transform duration-200 border border-white/15 cursor-zoom-in"
+              style={{ transform: `scale(${zoomLevel})` }}
+            />
+          </div>
+
+          {/* Footer instruction */}
+          <div
+            className="text-xs font-mono text-gray-400 bg-slate-950/90 px-5 py-2 rounded-full border border-white/10 z-10 flex items-center gap-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span>💡 Click backdrop or press</span>
+            <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 border border-white/20 font-bold">ESC</kbd>
+            <span>to minimize back</span>
+          </div>
+        </div>
+      )}
+
       {/* Page Header with Action Bar */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-center md:text-left space-y-1">
@@ -546,7 +645,7 @@ export default function LunarImageAnalysis() {
                 : 'bg-white/5 hover:bg-white/10 text-cyan-300 border-cyan-500/30'
             }`}
           >
-            
+            <span></span>
             <span>Past Predictions ({jobs.length})</span>
           </button>
         </div>
@@ -836,7 +935,7 @@ export default function LunarImageAnalysis() {
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
               <h3 className="font-heading font-black text-2xl text-white flex items-center gap-2">
-                <span>📊</span> Analysis Results
+                <span></span> Analysis Results
               </h3>
               <div className="flex items-center gap-2 mt-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -865,24 +964,37 @@ export default function LunarImageAnalysis() {
             </div>
           </div>
 
-          {/* Image panels */}
+          {/* Image panels with Pop-out Lightbox Trigger */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Original */}
             <div className="glass rounded-2xl border border-white/10 p-4 space-y-3">
-              <p className="text-[0.65rem] font-mono text-gray-400 uppercase tracking-widest">Original Input</p>
-              <div className="h-44 rounded-xl overflow-hidden bg-slate-950 border border-white/5 flex items-center justify-center">
+              <div className="flex justify-between items-center">
+                <p className="text-[0.65rem] font-mono text-gray-400 uppercase tracking-widest">Original Input</p>
+                <span className="text-[0.58rem] font-mono text-cyan-400">🔍 Click to Expand</span>
+              </div>
+              <div
+                onClick={() => setLightboxImage({
+                  url: getFullUrl(apiResponse.original_image_url || uploadedFile.preview),
+                  title: 'Original Input Imagery',
+                  subtitle: `Nominal Spatial Resolution: ${apiResponse.original_resolution_m}m/pixel · Format: ${uploadedFile.type}`
+                })}
+                className="group relative h-44 rounded-xl overflow-hidden bg-slate-950 border border-white/10 flex items-center justify-center cursor-zoom-in hover:border-cyan-500/50 transition-all duration-300"
+              >
                 {apiResponse.original_image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={getFullUrl(apiResponse.original_image_url)} alt="Original lunar image" className="w-full h-full object-cover" />
+                  <img src={getFullUrl(apiResponse.original_image_url)} alt="Original lunar image" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : uploadedFile.preview ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={uploadedFile.preview} alt="Original lunar image preview" className="w-full h-full object-cover" />
+                  <img src={uploadedFile.preview} alt="Original lunar image preview" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="flex flex-col items-center gap-3 opacity-50">
                     <span className="text-5xl">🛰️</span>
                     <span className="text-[0.6rem] font-mono text-gray-500 uppercase">TIFF Image</span>
                   </div>
                 )}
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 text-[0.55rem] font-mono text-cyan-300 border border-cyan-500/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                  🔍 Click to Zoom
+                </span>
               </div>
               <div className="text-[0.6rem] font-mono text-gray-500 flex justify-between">
                 <span>Resolution: {apiResponse.original_resolution_m}m/px</span>
@@ -892,12 +1004,22 @@ export default function LunarImageAnalysis() {
 
             {/* Super-Resolved */}
             <div className="glass rounded-2xl border border-purple-500/20 p-4 space-y-3">
-              <p className="text-[0.65rem] font-mono text-purple-400 uppercase tracking-widest">Super-Resolved Output</p>
-              <div className="h-44 rounded-xl overflow-hidden bg-slate-950 border border-purple-500/10 relative flex items-center justify-center">
+              <div className="flex justify-between items-center">
+                <p className="text-[0.65rem] font-mono text-purple-400 uppercase tracking-widest">Super-Resolved Output</p>
+                <span className="text-[0.58rem] font-mono text-purple-300">🔍 Click to Expand</span>
+              </div>
+              <div
+                onClick={() => setLightboxImage({
+                  url: getFullUrl(apiResponse.super_res_image_url || uploadedFile.preview),
+                  title: 'Super-Resolved Output (SwinIR / RRDB Neural Upscale)',
+                  subtitle: `Enhanced Spatial Resolution: ~${apiResponse.enhanced_resolution_m}m/pixel · 4x Neural Upscaling`
+                })}
+                className="group relative h-44 rounded-xl overflow-hidden bg-slate-950 border border-purple-500/20 flex items-center justify-center cursor-zoom-in hover:border-purple-500/60 transition-all duration-300"
+              >
                 {apiResponse.super_res_image_url ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getFullUrl(apiResponse.super_res_image_url)} alt="Super-resolved output" className="w-full h-full object-cover" />
+                    <img src={getFullUrl(apiResponse.super_res_image_url)} alt="Super-resolved output" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                     <span className="absolute bottom-2 right-2 text-[0.55rem] font-mono text-purple-300 bg-black/60 px-2 py-0.5 rounded-full border border-purple-500/30 backdrop-blur-sm">
                       RRDB / SwinIR
                     </span>
@@ -905,7 +1027,7 @@ export default function LunarImageAnalysis() {
                 ) : uploadedFile.preview ? (
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={uploadedFile.preview} alt="Super-resolved output" className="w-full h-full object-cover"
+                    <img src={uploadedFile.preview} alt="Super-resolved output" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       style={{ filter: 'contrast(1.15) brightness(1.05) saturate(1.1)' }} />
                     <div className="absolute inset-0 bg-purple-900/10" />
                     <span className="absolute bottom-2 right-2 text-[0.55rem] font-mono text-purple-300 bg-black/50 px-2 py-0.5 rounded-full border border-purple-500/20 backdrop-blur-sm">
@@ -918,6 +1040,9 @@ export default function LunarImageAnalysis() {
                     <span className="text-[0.6rem] font-mono text-gray-500 uppercase">AI Enhanced</span>
                   </div>
                 )}
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 text-[0.55rem] font-mono text-purple-300 border border-purple-500/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                  🔍 Click to Zoom
+                </span>
               </div>
               <div className="text-[0.6rem] font-mono text-gray-500 flex justify-between">
                 <span>Resolution: ~{apiResponse.enhanced_resolution_m}m/px</span>
@@ -927,14 +1052,27 @@ export default function LunarImageAnalysis() {
 
             {/* Risk Map */}
             <div className="glass rounded-2xl border border-orange-500/20 p-4 space-y-3">
-              <p className="text-[0.65rem] font-mono text-orange-400 uppercase tracking-widest">Hazard Risk Heatmap</p>
-              <div className="h-44 rounded-xl overflow-hidden bg-slate-950 border border-orange-500/10 relative flex items-center justify-center p-1">
+              <div className="flex justify-between items-center">
+                <p className="text-[0.65rem] font-mono text-orange-400 uppercase tracking-widest">Hazard Risk Heatmap</p>
+                <span className="text-[0.58rem] font-mono text-orange-300">🔍 Click to Expand</span>
+              </div>
+              <div
+                onClick={() => setLightboxImage({
+                  url: getFullUrl(apiResponse.risk_map_url),
+                  title: 'Multi-Hazard Lunar Risk Heatmap',
+                  subtitle: `Safe: ${apiResponse.summary.percent_safe}% | Caution: ${apiResponse.summary.percent_moderate}% | Danger (Red): ${apiResponse.summary.percent_hazardous}%`
+                })}
+                className="group relative h-44 rounded-xl overflow-hidden bg-slate-950 border border-orange-500/20 flex items-center justify-center cursor-zoom-in hover:border-orange-500/60 transition-all duration-300 p-1"
+              >
                 {apiResponse.risk_map_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={getFullUrl(apiResponse.risk_map_url)} alt="Risk map output" className="w-full h-full object-cover rounded-lg" />
+                  <img src={getFullUrl(apiResponse.risk_map_url)} alt="Risk map output" className="w-full h-full object-cover rounded-lg group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="w-full"><HazardGrid /></div>
                 )}
+                <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 text-[0.55rem] font-mono text-orange-300 border border-orange-500/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+                  🔍 Click to Zoom
+                </span>
               </div>
               <div className="flex gap-2 flex-wrap justify-between">
                 {[
@@ -959,14 +1097,14 @@ export default function LunarImageAnalysis() {
               <HazardBar label="Slope & Ridge Hazards" value={apiResponse.hazards.slope_zones.length > 0 ? Math.min(100, apiResponse.hazards.slope_zones.length * 15) : 18} color="bg-orange-500" />
               <HazardBar label="Safe Surface Coverage" value={apiResponse.summary.percent_safe} color="bg-emerald-500" />
               <HazardBar label="Moderate Risk Terrain" value={apiResponse.summary.percent_moderate} color="bg-yellow-500" />
-              <HazardBar label="Hazard Zone Coverage" value={apiResponse.summary.percent_hazardous} color="bg-purple-500" />
+              <HazardBar label="Hazard Zone Coverage" value={apiResponse.summary.percent_hazardous} color="bg-red-500" />
               
               <div className="mt-4 grid grid-cols-2 gap-2 text-[0.6rem] font-mono">
                 {[
                   { label: 'Craters', value: `${apiResponse.summary.total_craters} detected`, color: 'text-red-400' },
                   { label: 'Slope Zones', value: `${apiResponse.hazards.slope_zones.length} mapped`, color: 'text-orange-400' },
                   { label: 'Safe Surface', value: `${apiResponse.summary.percent_safe}%`, color: 'text-emerald-400' },
-                  { label: 'Shadow Zones', value: `${apiResponse.hazards.shadow_zones.length} mapped`, color: 'text-purple-400' },
+                  { label: 'Danger Surface', value: `${apiResponse.summary.percent_hazardous}%`, color: 'text-red-400' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="bg-white/5 rounded-lg p-2">
                     <span className="text-gray-500 block uppercase tracking-widest">{label}</span>

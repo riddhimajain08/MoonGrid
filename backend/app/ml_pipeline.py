@@ -159,6 +159,10 @@ def _detect_lunar_hazards(
 # 3. Risk Map Heatmap Colorisation (Terrain-Aware Fusion)
 # ──────────────────────────────────────────────────────────────────────────────
 
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. Risk Map Heatmap Colorisation (Terrain-Aware Fusion)
+# ──────────────────────────────────────────────────────────────────────────────
+
 def _render_risk_heatmap(
     gray: np.ndarray,
     risk_map: np.ndarray,
@@ -169,9 +173,9 @@ def _render_risk_heatmap(
     """
     Renders an authentic, terrain-aware lunar hazard risk heatmap:
       - Overlays risk density directly on top of real lunar surface details
-      - Green = Safe landing plains
-      - Amber = Slope & Shadow transition boundaries
-      - Red / Crimson = Dangerous Crater rims & steep obstacles
+      - Green = Safe landing plains (< 0.25)
+      - Amber / Yellow = Caution transition boundaries (0.25 - 0.50)
+      - Crimson Red = Severe Hazard & Crater Obstacles (>= 0.50)
       - Outlines detected craters and targets safe landing zones
     """
     h, w = risk_map.shape[:2]
@@ -179,31 +183,51 @@ def _render_risk_heatmap(
     gray_norm = np.clip(gray / 255.0, 0.0, 1.0)
 
     # Base terrain shading
-    base_r = gray_norm * 140.0
-    base_g = gray_norm * 160.0
-    base_b = gray_norm * 190.0
+    base_r = gray_norm * 120.0
+    base_g = gray_norm * 140.0
+    base_b = gray_norm * 160.0
 
-    # Dynamic risk color channels
-    # Red glows intensely at crater and slope hazard locations
-    r = np.clip(base_r * (1.0 - risk_clipped * 0.7) + 255.0 * np.minimum(1.0, risk_clipped * 2.2), 0, 255)
-    # Green is brightest in safe, flat regions
-    g = np.clip(base_g * (1.0 - risk_clipped * 0.7) + 220.0 * (1.0 - np.abs(risk_clipped - 0.25) * 1.8), 0, 255)
-    # Blue provides cool contrast in deep terrain
-    b = np.clip(base_b * (1.0 - risk_clipped * 0.8) + 80.0 * (1.0 - risk_clipped), 0, 255)
+    # Color Channels:
+    # Safe (<0.25): Green
+    # Caution (0.25-0.50): Yellow / Amber
+    # Danger (>=0.50): Crimson Red
+    safe_mask = (risk_clipped < 0.25).astype(np.float32)
+    caution_mask = ((risk_clipped >= 0.25) & (risk_clipped < 0.50)).astype(np.float32)
+    danger_mask = (risk_clipped >= 0.50).astype(np.float32)
+
+    # Smooth risk transitions
+    r = np.clip(
+        base_r * (1.0 - risk_clipped * 0.5)
+        + 255.0 * danger_mask
+        + 240.0 * caution_mask * (risk_clipped / 0.50),
+        0, 255
+    )
+    g = np.clip(
+        base_g * (1.0 - danger_mask * 0.8)
+        + 220.0 * safe_mask
+        + 210.0 * caution_mask,
+        0, 255
+    )
+    b = np.clip(
+        base_b * (1.0 - danger_mask * 0.9)
+        + 100.0 * safe_mask,
+        0, 255
+    )
 
     rgb = np.stack([r, g, b], axis=-1).astype(np.uint8)
     heatmap_img = Image.fromarray(rgb, mode="RGB")
 
-    # Draw subtle radar overlays for craters and target zone
+    # Draw vibrant radar overlays for craters and target zone
     draw = ImageDraw.Draw(heatmap_img)
-    for c in craters_list[:20]:
+    for c in craters_list[:30]:
         cx, cy, cw, ch = c["x"], c["y"], c["width"], c["height"]
-        draw.ellipse([cx, cy, cx + cw, cy + ch], outline=(255, 70, 70), width=2)
+        # Red hazard bounding ellipse & crosshair mark
+        draw.ellipse([cx, cy, cx + cw, cy + ch], outline=(255, 30, 30), width=2)
 
     if safe_zones:
         target = safe_zones[0]
         tx, ty, tr = target["x"], target["y"], max(20, target["radius_px"])
-        # Safe target crosshair & ring
+        # Safe target crosshair & green ring
         draw.ellipse([tx - tr, ty - tr, tx + tr, ty + tr], outline=(0, 255, 180), width=3)
         draw.ellipse([tx - tr // 2, ty - tr // 2, tx + tr // 2, ty + tr // 2], outline=(0, 255, 220), width=1)
         draw.line([tx - tr - 8, ty, tx + tr + 8, ty], fill=(0, 255, 180), width=1)
@@ -328,8 +352,9 @@ def run_full_pipeline(upload_path: Path) -> Dict[str, Any]:
         _detect_lunar_hazards(gray, sr_w, sr_h)
     )
 
-    # 5. Multi-Hazard Risk Fusion (40% Craters + 30% Shadows + 30% Slopes)
-    risk_map = (0.4 * crater_mask) + (0.3 * shadow_mask) + (0.3 * slope_mask)
+    # 5. Multi-Hazard Risk Fusion (Crater areas carry high danger >= 0.60)
+    # Crater regions automatically trigger high risk (0.65 weight)
+    risk_map = (0.65 * crater_mask) + (0.35 * slope_mask) + (0.35 * shadow_mask)
     risk_map = np.clip(risk_map, 0.0, 1.0)
 
     # 6. Safe Landing Zones
@@ -340,12 +365,11 @@ def run_full_pipeline(upload_path: Path) -> Dict[str, Any]:
     # 7. Render Terrain-Aware Risk Heatmap Image
     _render_risk_heatmap(gray, risk_map, craters_list, safe_zones, risk_path)
 
-
     # 8. Summary statistics
     total_px = float(risk_map.size)
-    pct_safe = int(round(np.sum(risk_map < 0.30) / total_px * 100))
-    pct_moderate = int(round(np.sum((risk_map >= 0.30) & (risk_map < 0.65)) / total_px * 100))
-    pct_hazardous = int(round(np.sum(risk_map >= 0.65) / total_px * 100))
+    pct_safe = int(round(np.sum(risk_map < 0.25) / total_px * 100))
+    pct_moderate = int(round(np.sum((risk_map >= 0.25) & (risk_map < 0.50)) / total_px * 100))
+    pct_hazardous = int(round(np.sum(risk_map >= 0.50) / total_px * 100))
 
     # Normalize percentages to sum to 100
     p_sum = pct_safe + pct_moderate + pct_hazardous
