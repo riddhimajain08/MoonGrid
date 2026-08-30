@@ -2,6 +2,10 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react';
 
+// ─── Constants & Configurations ──────────────────────────────────────────────
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const ACCEPTED_TYPES = ['.tif', '.tiff', '.jpg', '.jpeg', '.png'];
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 interface UploadedFile {
   file: File;
@@ -59,8 +63,18 @@ export interface BackendPredictResponse {
   };
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const ACCEPTED_TYPES = ['.tif', '.tiff', '.jpg', '.jpeg', '.png'];
+export interface JobListItem {
+  id: string;
+  created_at: string;
+  original_filename: string | null;
+  processing_time_ms: number;
+  recommended_zone_id: string;
+  total_craters: number;
+  total_boulders: number;
+  percent_safe: number;
+  percent_moderate: number;
+  percent_hazardous: number;
+}
 
 const PIPELINE_STAGES: PipelineStage[] = [
   {
@@ -79,7 +93,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
     id: 2,
     key: 'superres',
     label: 'Super-Resolution',
-    sublabel: '5m → ~1m via SwinIR / ESRGAN',
+    sublabel: '5m → ~1m via RRDB / SwinIR',
     icon: '🔬',
     color: 'from-purple-500/20 to-indigo-500/20',
     borderColor: 'border-purple-500/40',
@@ -91,7 +105,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
     id: 3,
     key: 'hazard',
     label: 'Hazard Detection',
-    sublabel: 'Craters · Boulders · Slopes · Shadows',
+    sublabel: 'Craters · Steep Slopes · Deep Shadows',
     icon: '🕳️',
     color: 'from-orange-500/20 to-red-500/20',
     borderColor: 'border-orange-500/40',
@@ -103,7 +117,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
     id: 4,
     key: 'risk',
     label: 'Risk Scoring',
-    sublabel: '1m grid risk-map fusion engine',
+    sublabel: 'Multi-hazard 1m risk-map fusion',
     icon: '🗺️',
     color: 'from-yellow-500/20 to-amber-500/20',
     borderColor: 'border-yellow-500/40',
@@ -115,7 +129,7 @@ const PIPELINE_STAGES: PipelineStage[] = [
     id: 5,
     key: 'landing',
     label: 'Safe Zone Detection',
-    sublabel: 'Optimal landing site identification',
+    sublabel: 'Topological safe site identification',
     icon: '🎯',
     color: 'from-emerald-500/20 to-green-500/20',
     borderColor: 'border-emerald-500/40',
@@ -135,8 +149,22 @@ function formatBytes(bytes: number): string {
 function getFullUrl(path?: string): string {
   if (!path) return '';
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-  return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+  return `${API_URL.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
+}
+
+function formatDate(isoStr: string): string {
+  try {
+    const d = new Date(isoStr);
+    return d.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+    });
+  } catch {
+    return isoStr;
+  }
 }
 
 // ─── Sub-Components ───────────────────────────────────────────────────────────
@@ -220,10 +248,73 @@ export default function LunarImageAnalysis() {
   const [error, setError] = useState<string | null>(null);
   const [apiResponse, setApiResponse] = useState<BackendPredictResponse | null>(null);
   const [isLiveBackend, setIsLiveBackend] = useState(false);
+
+  // Past jobs / history state
+  const [jobs, setJobs] = useState<JobListItem[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [isLoadingJobs, setIsLoadingJobs] = useState(false);
+  const [loadingJobId, setLoadingJobId] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch past prediction jobs
+  const fetchJobs = useCallback(async () => {
+    setIsLoadingJobs(true);
+    try {
+      const res = await fetch(`${API_URL}/jobs`);
+      if (res.ok) {
+        const data = await res.json();
+        setJobs(data);
+      }
+    } catch (err) {
+      console.warn('Could not fetch past jobs:', err);
+    } finally {
+      setIsLoadingJobs(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
+  // Load a past prediction job
+  const loadPastJob = useCallback(async (jobId: string) => {
+    setLoadingJobId(jobId);
+    setError(null);
+    try {
+      const res = await fetch(`${API_URL}/jobs/${jobId}`);
+      if (res.ok) {
+        const data: BackendPredictResponse = await res.json();
+        setApiResponse(data);
+        setIsLiveBackend(true);
+        setSelectedJobId(jobId);
+
+        const filename = data.original_image_url?.split('/').pop() || 'past_lunar_mission.png';
+        setUploadedFile({
+          file: new File([], filename),
+          preview: getFullUrl(data.original_image_url),
+          name: filename,
+          size: 'Stored Prediction',
+          type: 'PNG',
+        });
+
+        setShowResults(true);
+        setShowHistory(false);
+      } else {
+        setError('Failed to retrieve past job details.');
+      }
+    } catch (err) {
+      console.error('Error loading job:', err);
+      setError('Connection error while loading job.');
+    } finally {
+      setLoadingJobId(null);
+    }
+  }, []);
 
   const loadFile = useCallback((file: File) => {
     setError(null);
+    setSelectedJobId(null);
     const ext = '.' + (file.name.split('.').pop()?.toLowerCase() ?? '');
     const validExt = ACCEPTED_TYPES.includes(ext);
     if (!validExt) {
@@ -262,9 +353,9 @@ export default function LunarImageAnalysis() {
     setIsProcessing(true);
     setShowResults(false);
     setError(null);
+    setSelectedJobId(null);
     setCompletedStages(new Set());
 
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
     const formData = new FormData();
     formData.append('image', uploadedFile.file);
 
@@ -296,6 +387,8 @@ export default function LunarImageAnalysis() {
       if (res.ok) {
         backendData = await res.json();
         liveSuccess = true;
+        // Refresh past predictions list
+        fetchJobs();
       } else {
         console.warn(`Backend returned HTTP ${res.status}`);
       }
@@ -317,7 +410,7 @@ export default function LunarImageAnalysis() {
         original_image_url: '',
         hazards: {
           craters: Array.from({ length: 14 }, (_, i) => ({ x: 100 + i * 20, y: 150, width: 30, height: 30, confidence: 0.88 })),
-          boulders: Array.from({ length: 7 }, (_, i) => ({ x: 200 + i * 15, y: 220, width: 10, height: 10, confidence: 0.76 })),
+          boulders: [],
           slope_zones: [{ x: 50, y: 50, width: 120, height: 100, avg_slope_deg: 11.4 }],
           shadow_zones: [{ x: 300, y: 300, width: 80, height: 80 }],
         },
@@ -335,7 +428,7 @@ export default function LunarImageAnalysis() {
         },
         summary: {
           total_craters: 14,
-          total_boulders: 7,
+          total_boulders: 0,
           percent_safe: 65,
           percent_moderate: 22,
           percent_hazardous: 13,
@@ -346,7 +439,7 @@ export default function LunarImageAnalysis() {
     setCurrentStage(-1);
     setIsProcessing(false);
     setShowResults(true);
-  }, [uploadedFile, isProcessing]);
+  }, [uploadedFile, isProcessing, fetchJobs]);
 
   const [isExporting, setIsExporting] = useState(false);
   const [exportSuccess, setExportSuccess] = useState(false);
@@ -365,7 +458,7 @@ export default function LunarImageAnalysis() {
         filesize: uploadedFile.size,
         format: uploadedFile.type,
         nominal_spatial_resolution: `${apiResponse.original_resolution_m}.0m / pixel (TMC Orbital Sensor)`,
-        enhanced_spatial_resolution: `${apiResponse.enhanced_resolution_m}.0m / pixel (SwinIR / ESRGAN Super-Resolution)`,
+        enhanced_spatial_resolution: `${apiResponse.enhanced_resolution_m}.0m / pixel (SwinIR / RRDB Super-Resolution)`,
         api_mode: isLiveBackend ? "LIVE_FASTAPI_BACKEND" : "SIMULATION_FALLBACK",
       },
       pipeline_execution: {
@@ -378,7 +471,8 @@ export default function LunarImageAnalysis() {
       },
       hazard_analysis: {
         craters_detected: apiResponse.summary.total_craters,
-        boulders_detected: apiResponse.summary.total_boulders,
+        slope_zones_identified: apiResponse.hazards.slope_zones.length,
+        shadow_zones_identified: apiResponse.hazards.shadow_zones.length,
         percent_safe: `${apiResponse.summary.percent_safe}%`,
         percent_moderate: `${apiResponse.summary.percent_moderate}%`,
         percent_hazardous: `${apiResponse.summary.percent_hazardous}%`,
@@ -411,6 +505,7 @@ export default function LunarImageAnalysis() {
 
   const resetAll = useCallback(() => {
     setUploadedFile(null);
+    setSelectedJobId(null);
     setIsProcessing(false);
     setCurrentStage(-1);
     setCompletedStages(new Set());
@@ -427,15 +522,129 @@ export default function LunarImageAnalysis() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8 space-y-8">
-      {/* Page Header */}
-      <div className="text-center space-y-3">
-        <h2 className="font-heading font-black text-3xl md:text-4xl text-white tracking-wider flex items-center justify-center gap-3">
-          <span>🌕</span><span>Lunar Image Analysis</span>
-        </h2>
-        <p className="text-xs font-mono text-cyan-400 tracking-widest uppercase">
-          Super-Resolution · Hazard Detection · Safe Landing Zone Identification
-        </p>
+      {/* Page Header with Action Bar */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="text-center md:text-left space-y-1">
+          <h2 className="font-heading font-black text-3xl md:text-4xl text-white tracking-wider flex items-center justify-center md:justify-start gap-3">
+            <span>🌕</span><span>Lunar Image Analysis</span>
+          </h2>
+          <p className="text-xs font-mono text-cyan-400 tracking-widest uppercase">
+            Super-Resolution · Hazard Detection · Safe Landing Zone Identification
+          </p>
+        </div>
+
+        {/* Action Controls: History & New Analysis */}
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => {
+              setShowHistory(!showHistory);
+              if (!showHistory) fetchJobs();
+            }}
+            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 border ${
+              showHistory
+                ? 'bg-cyan-500 text-black border-cyan-400 shadow-lg shadow-cyan-500/20'
+                : 'bg-white/5 hover:bg-white/10 text-cyan-300 border-cyan-500/30'
+            }`}
+          >
+            <span>📜</span>
+            <span>Past Predictions ({jobs.length})</span>
+          </button>
+        </div>
       </div>
+
+      {/* ─── Mission History Drawer / Modal ─── */}
+      {showHistory && (
+        <div className="glass rounded-3xl border border-cyan-500/30 p-6 space-y-4 animate-fade-in">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">📜</span>
+              <h3 className="font-heading font-bold text-lg text-white">Previous Predicted Missions</h3>
+              <span className="text-xs font-mono text-gray-400">({jobs.length} recorded in database)</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchJobs}
+                disabled={isLoadingJobs}
+                className="px-3 py-1.5 rounded-lg text-xs font-mono bg-white/5 hover:bg-white/10 border border-white/10 text-cyan-400 transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <span>🔄</span>
+                <span>{isLoadingJobs ? 'Refreshing…' : 'Refresh'}</span>
+              </button>
+              <button
+                onClick={() => setShowHistory(false)}
+                className="px-3 py-1.5 rounded-lg text-xs font-mono text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+              >
+                ✕ Close
+              </button>
+            </div>
+          </div>
+
+          {isLoadingJobs ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-3">
+              <div className="w-8 h-8 rounded-full border-2 border-cyan-400/30 border-t-cyan-400 animate-spin" />
+              <p className="text-xs font-mono text-cyan-400">Loading mission records from database…</p>
+            </div>
+          ) : jobs.length === 0 ? (
+            <div className="py-12 text-center space-y-2">
+              <p className="text-sm font-mono text-gray-400">No past predictions recorded in the database yet.</p>
+              <p className="text-xs font-mono text-gray-600">Run your first analysis above to save a prediction job!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto pr-1">
+              {jobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-cyan-500/40 rounded-2xl p-4 space-y-3 transition-all cursor-pointer group"
+                  onClick={() => loadPastJob(job.id)}
+                >
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-xs font-mono font-bold text-white group-hover:text-cyan-300 truncate max-w-[180px]">
+                        {job.original_filename || 'Lunar_Capture.png'}
+                      </p>
+                      <p className="text-[0.6rem] font-mono text-gray-500 mt-0.5">
+                        {formatDate(job.created_at)}
+                      </p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded-md text-[0.6rem] font-mono bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold">
+                      {job.percent_safe}% Safe
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-[0.6rem] font-mono">
+                    <div className="bg-black/30 rounded-lg p-2">
+                      <span className="text-gray-500 block uppercase tracking-wider text-[0.55rem]">Craters</span>
+                      <span className="text-red-400 font-bold">{job.total_craters}</span>
+                    </div>
+                    <div className="bg-black/30 rounded-lg p-2">
+                      <span className="text-gray-500 block uppercase tracking-wider text-[0.55rem]">Zone</span>
+                      <span className="text-emerald-400 font-bold">{job.recommended_zone_id}</span>
+                    </div>
+                    <div className="bg-black/30 rounded-lg p-2">
+                      <span className="text-gray-500 block uppercase tracking-wider text-[0.55rem]">Latency</span>
+                      <span className="text-cyan-400 font-bold">{job.processing_time_ms}ms</span>
+                    </div>
+                  </div>
+
+                  <button
+                    disabled={loadingJobId === job.id}
+                    className="w-full py-1.5 rounded-xl text-[0.65rem] font-mono font-bold uppercase tracking-wider bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    {loadingJobId === job.id ? (
+                      <span>⏳ Loading…</span>
+                    ) : (
+                      <>
+                        <span>Inspect Analysis</span>
+                        <span>➔</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Upload Zone */}
       {!uploadedFile && (
@@ -593,6 +802,34 @@ export default function LunarImageAnalysis() {
       {/* Results Dashboard */}
       {showResults && uploadedFile && apiResponse && (
         <div className="space-y-6 animate-fade-in">
+          {/* Stored Job Header Banner if viewing a past job */}
+          {selectedJobId && (
+            <div className="glass rounded-2xl border border-cyan-500/40 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-cyan-950/30 shadow-lg shadow-cyan-950/50">
+              <div className="flex items-center gap-3">
+                <span className="text-2xl">📜</span>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono text-cyan-300 font-bold uppercase tracking-wider">
+                      Viewing Saved Mission Run
+                    </span>
+                    <span className="px-2 py-0.5 rounded text-[0.6rem] font-mono bg-cyan-500/20 text-cyan-200 border border-cyan-500/40 font-bold">
+                      {selectedJobId.slice(0, 8)}…
+                    </span>
+                  </div>
+                  <p className="text-[0.65rem] font-mono text-gray-400 mt-0.5">
+                    Loaded historical inference data from MoonGrid database
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={resetAll}
+                className="px-4 py-2 rounded-xl text-xs font-mono bg-cyan-500 hover:bg-cyan-400 text-black font-bold transition-all shadow-md flex items-center gap-1.5"
+              >
+                <span>+ Upload New Image</span>
+              </button>
+            </div>
+          )}
+
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -660,7 +897,7 @@ export default function LunarImageAnalysis() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={getFullUrl(apiResponse.super_res_image_url)} alt="Super-resolved output" className="w-full h-full object-cover" />
                     <span className="absolute bottom-2 right-2 text-[0.55rem] font-mono text-purple-300 bg-black/60 px-2 py-0.5 rounded-full border border-purple-500/30 backdrop-blur-sm">
-                      SwinIR Enhanced
+                      RRDB / SwinIR
                     </span>
                   </>
                 ) : uploadedFile.preview ? (
@@ -670,7 +907,7 @@ export default function LunarImageAnalysis() {
                       style={{ filter: 'contrast(1.15) brightness(1.05) saturate(1.1)' }} />
                     <div className="absolute inset-0 bg-purple-900/10" />
                     <span className="absolute bottom-2 right-2 text-[0.55rem] font-mono text-purple-300 bg-black/50 px-2 py-0.5 rounded-full border border-purple-500/20 backdrop-blur-sm">
-                      SwinIR Enhanced
+                      RRDB / SwinIR
                     </span>
                   </>
                 ) : (
@@ -682,29 +919,29 @@ export default function LunarImageAnalysis() {
               </div>
               <div className="text-[0.6rem] font-mono text-gray-500 flex justify-between">
                 <span>Resolution: ~{apiResponse.enhanced_resolution_m}m/px</span>
-                <span className="text-purple-400">×5 Upscale</span>
+                <span className="text-purple-400">×4 Upscale</span>
               </div>
             </div>
 
             {/* Risk Map */}
             <div className="glass rounded-2xl border border-orange-500/20 p-4 space-y-3">
-              <p className="text-[0.65rem] font-mono text-orange-400 uppercase tracking-widest">Hazard Risk Map</p>
+              <p className="text-[0.65rem] font-mono text-orange-400 uppercase tracking-widest">Hazard Risk Heatmap</p>
               <div className="h-44 rounded-xl overflow-hidden bg-slate-950 border border-orange-500/10 relative flex items-center justify-center p-1">
                 {apiResponse.risk_map_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={getFullUrl(apiResponse.risk_map_url)} alt="Risk map output" className="w-full h-full object-cover" />
+                  <img src={getFullUrl(apiResponse.risk_map_url)} alt="Risk map output" className="w-full h-full object-cover rounded-lg" />
                 ) : (
                   <div className="w-full"><HazardGrid /></div>
                 )}
               </div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap justify-between">
                 {[
                   { color: 'bg-emerald-500', label: `Safe (${apiResponse.summary.percent_safe}%)` },
                   { color: 'bg-yellow-500', label: `Caution (${apiResponse.summary.percent_moderate}%)` },
                   { color: 'bg-red-500', label: `Danger (${apiResponse.summary.percent_hazardous}%)` },
                 ].map(({ color, label }) => (
                   <span key={label} className="flex items-center gap-1 text-[0.55rem] font-mono text-gray-400">
-                    <span className={`w-2 h-2 rounded-sm ${color} opacity-80`} />{label}
+                    <span className={`w-2 h-2 rounded-sm ${color} opacity-90`} />{label}
                   </span>
                 ))}
               </div>
@@ -713,20 +950,21 @@ export default function LunarImageAnalysis() {
 
           {/* Analysis panels */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Hazard breakdown */}
+            {/* Hazard breakdown (Crater + Slope + Shadow features) */}
             <div className="glass rounded-2xl border border-white/10 p-5">
               <p className="text-[0.65rem] font-mono text-gray-400 uppercase tracking-widest mb-4">Hazard Breakdown</p>
-              <HazardBar label="Crater Distribution" value={Math.min(100, apiResponse.summary.total_craters * 5)} color="bg-red-500" />
-              <HazardBar label="Boulder Obstacles" value={Math.min(100, apiResponse.summary.total_boulders * 6)} color="bg-orange-500" />
-              <HazardBar label="Safe Area Coverage" value={apiResponse.summary.percent_safe} color="bg-emerald-500" />
+              <HazardBar label="Crater Density" value={Math.min(100, apiResponse.summary.total_craters * 3)} color="bg-red-500" />
+              <HazardBar label="Slope & Ridge Hazards" value={apiResponse.hazards.slope_zones.length > 0 ? Math.min(100, apiResponse.hazards.slope_zones.length * 15) : 18} color="bg-orange-500" />
+              <HazardBar label="Safe Surface Coverage" value={apiResponse.summary.percent_safe} color="bg-emerald-500" />
               <HazardBar label="Moderate Risk Terrain" value={apiResponse.summary.percent_moderate} color="bg-yellow-500" />
               <HazardBar label="Hazard Zone Coverage" value={apiResponse.summary.percent_hazardous} color="bg-purple-500" />
+              
               <div className="mt-4 grid grid-cols-2 gap-2 text-[0.6rem] font-mono">
                 {[
                   { label: 'Craters', value: `${apiResponse.summary.total_craters} detected`, color: 'text-red-400' },
-                  { label: 'Boulders', value: `${apiResponse.summary.total_boulders} detected`, color: 'text-orange-400' },
+                  { label: 'Slope Zones', value: `${apiResponse.hazards.slope_zones.length} mapped`, color: 'text-orange-400' },
                   { label: 'Safe Surface', value: `${apiResponse.summary.percent_safe}%`, color: 'text-emerald-400' },
-                  { label: 'Hazards', value: `${apiResponse.summary.percent_hazardous}%`, color: 'text-purple-400' },
+                  { label: 'Shadow Zones', value: `${apiResponse.hazards.shadow_zones.length} mapped`, color: 'text-purple-400' },
                 ].map(({ label, value, color }) => (
                   <div key={label} className="bg-white/5 rounded-lg p-2">
                     <span className="text-gray-500 block uppercase tracking-widest">{label}</span>
@@ -774,7 +1012,7 @@ export default function LunarImageAnalysis() {
                   { label: 'Zone ID', value: apiResponse.recommended_zone_id },
                   { label: 'Grid Position', value: recZone ? `X:${recZone.x} Y:${recZone.y}` : 'X:396 Y:396' },
                   { label: 'Safe Radius', value: recZone ? `${recZone.radius_px} px` : '38 px' },
-                  { label: 'Area', value: recZone ? `${recZone.area_m2} m²` : '1200 m²' },
+                  { label: 'Area', value: recZone ? `${recZone.area_m2.toLocaleString()} m²` : '1,200 m²' },
                 ].map(({ label, value }) => (
                   <div key={label} className="bg-emerald-500/5 border border-emerald-500/10 rounded-lg p-2">
                     <span className="text-gray-500 block uppercase tracking-widest">{label}</span>

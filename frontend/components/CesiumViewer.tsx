@@ -5,7 +5,8 @@ import type * as CesiumType from "cesium";
 
 declare global {
   interface Window {
-    CESIUM_BASE_URL: string;
+    CESIUM_BASE_URL?: string;
+    Cesium?: any;
   }
 }
 
