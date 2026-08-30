@@ -163,13 +163,13 @@ def get_lunar_sites():
         {
             "id": "shackleton",
             "name": "Shackleton Crater Rim",
-            "region": "South Pole",
+            "region": "South Pole (89.54° S)",
             "lat": -89.54,
             "lon": 0.0,
             "risk_score": 0.12,
             "risk_label": "Low",
             "slope_deg": 2.4,
-            "description": "Prime candidate site near permanently shadowed regions with high water ice potential.",
+            "description": "Prime candidate site near permanently shadowed regions (PSR) with high water ice potential.",
             "hazards": {
                 "craters": [
                     {"lat": -89.60, "lon": 5.0, "radius_km": 0.8, "depth_m": 120},
@@ -180,7 +180,7 @@ def get_lunar_sites():
                     {"lat": -89.55, "lon": -5.0, "radius_km": 1.5, "avg_slope_deg": 12.4},
                 ],
                 "shadow_zones": [
-                    {"lat": -89.80, "lon": 0.0, "radius_km": 4.0},
+                    {"lat": -89.80, "lon": 0.0, "radius_km": 3.5},
                 ],
                 "safe_zones": [
                     {"lat": -89.50, "lon": 2.0, "radius_km": 0.6, "area_km2": 1.13},
@@ -197,22 +197,24 @@ def get_lunar_sites():
         {
             "id": "malapert",
             "name": "Malapert Mountain",
-            "region": "South Pole",
+            "region": "South Pole (84.9° S)",
             "lat": -84.9,
             "lon": 12.9,
             "risk_score": 0.18,
             "risk_label": "Low",
             "slope_deg": 3.1,
-            "description": "Elevated plateau providing continuous Earth line-of-sight communication.",
+            "description": "Elevated plateau providing continuous Earth line-of-sight communication and solar power.",
             "hazards": {
                 "craters": [
                     {"lat": -85.1, "lon": 13.5, "radius_km": 0.6, "depth_m": 90},
                     {"lat": -84.7, "lon": 12.0, "radius_km": 0.4, "depth_m": 60},
                 ],
                 "slope_zones": [
-                    {"lat": -84.85, "lon": 12.8, "radius_km": 2.0, "avg_slope_deg": 15.2},
+                    {"lat": -84.85, "lon": 12.8, "radius_km": 1.8, "avg_slope_deg": 15.2},
                 ],
-                "shadow_zones": [],
+                "shadow_zones": [
+                    {"lat": -85.05, "lon": 12.3, "radius_km": 2.0},
+                ],
                 "safe_zones": [
                     {"lat": -84.9, "lon": 12.9, "radius_km": 0.5, "area_km2": 0.78},
                 ],
@@ -234,14 +236,18 @@ def get_lunar_sites():
             "risk_score": 0.08,
             "risk_label": "Very Low",
             "slope_deg": 1.1,
-            "description": "Vast, flat basaltic lunar mare with minimal crater obstruction.",
+            "description": "Vast, flat basaltic lunar mare with minimal obstacle obstruction and smooth touchdown zones.",
             "hazards": {
                 "craters": [
                     {"lat": 18.8, "lon": -56.8, "radius_km": 1.4, "depth_m": 180},
                     {"lat": 17.9, "lon": -58.2, "radius_km": 0.9, "depth_m": 130},
                 ],
-                "slope_zones": [],
-                "shadow_zones": [],
+                "slope_zones": [
+                    {"lat": 18.6, "lon": -56.5, "radius_km": 1.1, "avg_slope_deg": 6.8},
+                ],
+                "shadow_zones": [
+                    {"lat": 18.2, "lon": -58.0, "radius_km": 1.5},
+                ],
                 "safe_zones": [
                     {"lat": 18.4, "lon": -57.4, "radius_km": 2.0, "area_km2": 12.6},
                 ],
@@ -263,7 +269,7 @@ def get_lunar_sites():
             "risk_score": 0.15,
             "risk_label": "Low",
             "slope_deg": 1.8,
-            "description": "Apollo 11 heritage site — equatorial mare with titanium-rich basalts.",
+            "description": "Apollo 11 heritage site — equatorial mare with titanium-rich basalt bedrock.",
             "hazards": {
                 "craters": [
                     {"lat": 1.2, "lon": 24.0, "radius_km": 1.0, "depth_m": 150},
@@ -273,7 +279,9 @@ def get_lunar_sites():
                 "slope_zones": [
                     {"lat": 0.8, "lon": 23.5, "radius_km": 1.2, "avg_slope_deg": 8.5},
                 ],
-                "shadow_zones": [],
+                "shadow_zones": [
+                    {"lat": 0.4, "lon": 23.8, "radius_km": 1.0},
+                ],
                 "safe_zones": [
                     {"lat": 0.67, "lon": 23.47, "radius_km": 0.8, "area_km2": 2.0},
                 ],
