@@ -14,6 +14,18 @@ from app.fake_data import build_fake_predict_response
 from app.models import PredictionJob
 from app.schemas import JobListItem, PredictResponse
 
+# Real ML pipeline — imported lazily; falls back to fake_data if unavailable
+try:
+    from app.ml_pipeline import run_full_pipeline as _run_ml_pipeline
+    _ML_AVAILABLE = True
+except Exception as _ml_import_err:
+    import logging as _logging
+    _logging.getLogger(__name__).warning(
+        f"ML pipeline import failed ({_ml_import_err}). Using fake_data fallback."
+    )
+    _ML_AVAILABLE = False
+
+
 app = FastAPI(
     title="MoonGrid API",
     description="Backend for MoonGrid — lunar hazard mapping & safe landing zone detection.",
@@ -56,14 +68,14 @@ async def predict(image: UploadFile = File(...), db: Session = Depends(get_db)):
     """
     Accepts a TMC image (.tif/.png/.jpg) and returns hazard/risk analysis.
 
-    RIGHT NOW this returns hardcoded-but-realistic fake data (see
-    app/fake_data.py) so the frontend can build against the real shape
-    immediately. On integration day, replace the body of this function
-    with real model calls — the route, request format, and response
-    schema all stay exactly the same.
+    Processing order:
+      1. Try real ML pipeline (RRDB super-res + Faster R-CNN crater detector
+         + CV hazard masks + risk-map fusion + safe-zone ranking).
+      2. If ML inference fails for any reason, fall back to fake_data.py so
+         the demo never hard-errors. A `ml_mode` field in the response log
+         tells you which path ran.
 
-    Every call is also persisted to Postgres as a PredictionJob row, so
-    you can list/inspect past runs via GET /jobs and GET /jobs/{id}.
+    Every call is persisted to the DB as a PredictionJob row.
     """
     ext = Path(image.filename or "").suffix.lower()
     if ext not in ALLOWED_EXTENSIONS:
@@ -78,13 +90,31 @@ async def predict(image: UploadFile = File(...), db: Session = Depends(get_db)):
     with save_path.open("wb") as f:
         shutil.copyfileobj(image.file, f)
 
-    try:
-        result = build_fake_predict_response(save_path)
-    except Exception:
-        return JSONResponse(
-            status_code=500,
-            content={"error": "Failed to process image"},
-        )
+    result = None
+
+    # ── Try real ML pipeline ──────────────────────────────────────────────────
+    if _ML_AVAILABLE:
+        try:
+            import asyncio
+            loop = asyncio.get_event_loop()
+            # Run blocking ML inference in a thread pool so we don't block the event loop
+            result = await loop.run_in_executor(None, _run_ml_pipeline, save_path)
+        except Exception as ml_err:
+            import logging
+            logging.getLogger(__name__).warning(
+                f"ML pipeline inference failed ({ml_err}). Falling back to fake_data."
+            )
+            result = None
+
+    # ── Fallback to fake_data ─────────────────────────────────────────────────
+    if result is None:
+        try:
+            result = build_fake_predict_response(save_path)
+        except Exception:
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Failed to process image"},
+            )
 
     job = PredictionJob(
         original_filename=image.filename,
