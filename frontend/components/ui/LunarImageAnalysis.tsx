@@ -625,7 +625,7 @@ export default function LunarImageAnalysis() {
       <div className="flex flex-col md:flex-row items-center justify-between gap-4">
         <div className="text-center md:text-left space-y-1">
           <h2 className="font-heading font-black text-3xl md:text-4xl text-white tracking-wider flex items-center justify-center md:justify-start gap-3">
-            <span>🌕</span><span>Lunar Image Analysis</span>
+            <span></span><span>Lunar Image Analysis</span>
           </h2>
           <p className="text-xs font-mono text-cyan-400 tracking-widest uppercase">
             Super-Resolution · Hazard Detection · Safe Landing Zone Identification
@@ -970,7 +970,7 @@ export default function LunarImageAnalysis() {
             <div className="glass rounded-2xl border border-white/10 p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <p className="text-[0.65rem] font-mono text-gray-400 uppercase tracking-widest">Original Input</p>
-                <span className="text-[0.58rem] font-mono text-cyan-400">🔍 Click to Expand</span>
+                <span className="text-[0.58rem] font-mono text-cyan-400"> Click to Expand</span>
               </div>
               <div
                 onClick={() => setLightboxImage({
@@ -1006,7 +1006,7 @@ export default function LunarImageAnalysis() {
             <div className="glass rounded-2xl border border-purple-500/20 p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <p className="text-[0.65rem] font-mono text-purple-400 uppercase tracking-widest">Super-Resolved Output</p>
-                <span className="text-[0.58rem] font-mono text-purple-300">🔍 Click to Expand</span>
+                <span className="text-[0.58rem] font-mono text-purple-300"> Click to Expand</span>
               </div>
               <div
                 onClick={() => setLightboxImage({
@@ -1054,7 +1054,7 @@ export default function LunarImageAnalysis() {
             <div className="glass rounded-2xl border border-orange-500/20 p-4 space-y-3">
               <div className="flex justify-between items-center">
                 <p className="text-[0.65rem] font-mono text-orange-400 uppercase tracking-widest">Hazard Risk Heatmap</p>
-                <span className="text-[0.58rem] font-mono text-orange-300">🔍 Click to Expand</span>
+                <span className="text-[0.58rem] font-mono text-orange-300"> Click to Expand</span>
               </div>
               <div
                 onClick={() => setLightboxImage({
