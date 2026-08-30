@@ -164,13 +164,13 @@ export default function Home() {
                   className="btn-primary glass px-8 py-4 rounded-full text-xs font-mono font-bold tracking-widest uppercase text-white shadow-xl flex items-center justify-center gap-2"
                 >
                   <span>Launch 3D Cesium Map</span>
-                  <span>➔</span>
+                  <span></span>
                 </button>
                 <button
                   onClick={() => setActiveView('workflow')}
                   className="btn-secondary px-8 py-4 rounded-full text-xs font-mono font-bold tracking-widest uppercase text-white flex items-center justify-center gap-2"
                 >
-                  <span>🛰️ Image Analysis</span>
+                  <span> Image Analysis</span>
                 </button>
               </div>
             </main>

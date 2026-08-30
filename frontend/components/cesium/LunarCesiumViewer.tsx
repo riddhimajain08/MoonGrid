@@ -791,7 +791,7 @@ export default function LunarCesiumViewer() {
           >
             {isSimulating
               ? <><div className="w-3 h-3 rounded-full border border-white/40 border-t-white animate-spin" /> Simulating Descent…</>
-              : <><span>🚀</span><span>Simulate Lander Descent</span></>
+              : <><span></span><span>Simulate Lander Descent</span></>
             }
           </button>
         </div>

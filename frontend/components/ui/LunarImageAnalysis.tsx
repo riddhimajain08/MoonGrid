@@ -614,7 +614,7 @@ export default function LunarImageAnalysis() {
             className="text-xs font-mono text-gray-400 bg-slate-950/90 px-5 py-2 rounded-full border border-white/10 z-10 flex items-center gap-2"
             onClick={(e) => e.stopPropagation()}
           >
-            <span>💡 Click backdrop or press</span>
+            <span> Click backdrop or press</span>
             <kbd className="px-2 py-0.5 rounded bg-white/10 text-cyan-300 border border-white/20 font-bold">ESC</kbd>
             <span>to minimize back</span>
           </div>
@@ -656,7 +656,7 @@ export default function LunarImageAnalysis() {
         <div className="glass rounded-3xl border border-cyan-500/30 p-6 space-y-4 animate-fade-in">
           <div className="flex items-center justify-between border-b border-white/10 pb-4">
             <div className="flex items-center gap-2">
-              <span className="text-xl">📜</span>
+              <span className="text-xl"></span>
               <h3 className="font-heading font-bold text-lg text-white">Previous Predicted Missions</h3>
               <span className="text-xs font-mono text-gray-400">({jobs.length} recorded in database)</span>
             </div>
