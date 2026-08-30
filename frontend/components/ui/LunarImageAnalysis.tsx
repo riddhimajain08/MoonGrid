@@ -83,10 +83,10 @@ const PIPELINE_STAGES: PipelineStage[] = [
     stepNumber: 'STEP 01',
     label: 'Pre-processing',
     sublabel: 'Noise reduction & radiometric calibration',
-    color: 'from-blue-500/20 to-cyan-500/20',
-    borderColor: 'border-blue-500/40',
-    textColor: 'text-blue-400',
-    badgeColor: 'bg-blue-500/10 border-blue-500/30 text-blue-300',
+    color: 'from-slate-800/40 to-slate-900/60',
+    borderColor: 'border-sky-400/40',
+    textColor: 'text-sky-300',
+    badgeColor: 'bg-sky-500/10 border-sky-400/30 text-sky-200',
     durationMs: 1200,
   },
   {
@@ -95,10 +95,10 @@ const PIPELINE_STAGES: PipelineStage[] = [
     stepNumber: 'STEP 02',
     label: 'Super-Resolution',
     sublabel: '5m → ~1m via RRDB / SwinIR',
-    color: 'from-purple-500/20 to-indigo-500/20',
-    borderColor: 'border-purple-500/40',
-    textColor: 'text-purple-400',
-    badgeColor: 'bg-purple-500/10 border-purple-500/30 text-purple-300',
+    color: 'from-slate-800/40 to-slate-900/60',
+    borderColor: 'border-sky-400/40',
+    textColor: 'text-sky-300',
+    badgeColor: 'bg-sky-500/10 border-sky-400/30 text-sky-200',
     durationMs: 1800,
   },
   {
@@ -107,10 +107,10 @@ const PIPELINE_STAGES: PipelineStage[] = [
     stepNumber: 'STEP 03',
     label: 'Hazard Detection',
     sublabel: 'Craters · Steep Slopes · Deep Shadows',
-    color: 'from-orange-500/20 to-red-500/20',
-    borderColor: 'border-orange-500/40',
-    textColor: 'text-orange-400',
-    badgeColor: 'bg-orange-500/10 border-orange-500/30 text-orange-300',
+    color: 'from-slate-800/40 to-slate-900/60',
+    borderColor: 'border-sky-400/40',
+    textColor: 'text-sky-300',
+    badgeColor: 'bg-sky-500/10 border-sky-400/30 text-sky-200',
     durationMs: 1500,
   },
   {
@@ -119,10 +119,10 @@ const PIPELINE_STAGES: PipelineStage[] = [
     stepNumber: 'STEP 04',
     label: 'Risk Scoring',
     sublabel: 'Multi-hazard 1m risk-map fusion',
-    color: 'from-yellow-500/20 to-amber-500/20',
-    borderColor: 'border-yellow-500/40',
-    textColor: 'text-yellow-400',
-    badgeColor: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-300',
+    color: 'from-slate-800/40 to-slate-900/60',
+    borderColor: 'border-sky-400/40',
+    textColor: 'text-sky-300',
+    badgeColor: 'bg-sky-500/10 border-sky-400/30 text-sky-200',
     durationMs: 1000,
   },
   {
@@ -131,10 +131,10 @@ const PIPELINE_STAGES: PipelineStage[] = [
     stepNumber: 'STEP 05',
     label: 'Safe Zone Detection',
     sublabel: 'Topological safe site identification',
-    color: 'from-emerald-500/20 to-green-500/20',
-    borderColor: 'border-emerald-500/40',
-    textColor: 'text-emerald-400',
-    badgeColor: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300',
+    color: 'from-slate-800/40 to-slate-900/60',
+    borderColor: 'border-sky-400/40',
+    textColor: 'text-sky-300',
+    badgeColor: 'bg-sky-500/10 border-sky-400/30 text-sky-200',
     durationMs: 800,
   },
 ];
@@ -197,8 +197,8 @@ function RiskGauge({ score }: { score: number }) {
     score < 35
       ? 'shadow-emerald-500/40 border-emerald-500/50'
       : score < 65
-      ? 'shadow-yellow-500/40 border-yellow-500/50'
-      : 'shadow-red-500/40 border-red-500/50';
+        ? 'shadow-yellow-500/40 border-yellow-500/50'
+        : 'shadow-red-500/40 border-red-500/50';
   return (
     <div className="flex flex-col items-center">
       <div
@@ -627,9 +627,6 @@ export default function LunarImageAnalysis() {
           <h2 className="font-heading font-black text-3xl md:text-4xl text-white tracking-wider flex items-center justify-center md:justify-start gap-3">
             <span></span><span>Lunar Image Analysis</span>
           </h2>
-          <p className="text-xs font-mono text-cyan-400 tracking-widest uppercase">
-            Super-Resolution · Hazard Detection · Safe Landing Zone Identification
-          </p>
         </div>
 
         {/* Action Controls: History & New Analysis */}
@@ -639,13 +636,11 @@ export default function LunarImageAnalysis() {
               setShowHistory(!showHistory);
               if (!showHistory) fetchJobs();
             }}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold tracking-wider transition-all flex items-center gap-2 border ${
-              showHistory
-                ? 'bg-cyan-500 text-black border-cyan-400 shadow-lg shadow-cyan-500/20'
-                : 'bg-white/5 hover:bg-white/10 text-cyan-300 border-cyan-500/30'
-            }`}
+            className={`btn-secondary px-6 py-2.5 rounded-full text-xs font-mono font-bold tracking-wider uppercase transition-all flex items-center gap-2 border ${showHistory
+                ? 'bg-white/20 border-white/40 text-white shadow-lg shadow-sky-500/15'
+                : 'bg-white/5 hover:bg-white/10 text-gray-200 border-white/15 hover:border-white/30'
+              }`}
           >
-            <span></span>
             <span>Past Predictions ({jobs.length})</span>
           </button>
         </div>
@@ -830,16 +825,16 @@ export default function LunarImageAnalysis() {
                 id="run-analysis-btn"
                 onClick={runPipeline}
                 disabled={isProcessing}
-                className={`px-8 py-3 rounded-xl text-xs font-mono font-bold tracking-widest uppercase transition-all duration-300
+                className={`btn-secondary px-8 py-3.5 rounded-full text-xs font-mono font-bold tracking-widest uppercase transition-all duration-300 border
                   ${isProcessing
-                    ? 'bg-white/5 text-gray-500 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 hover:scale-105 shadow-lg shadow-cyan-500/20'
+                    ? 'bg-white/5 text-gray-500 border-white/10 cursor-not-allowed'
+                    : 'bg-white/10 hover:bg-white/20 text-white border-white/30 hover:border-white/50 shadow-xl'
                   }`}
               >
                 {isProcessing ? ' Analysing…' : ' Run Analysis'}
               </button>
               <button id="upload-new-btn" onClick={resetAll}
-                className="px-8 py-3 rounded-xl text-xs font-mono text-gray-400 hover:text-white hover:bg-white/10 border border-white/10 transition-all">
+                className="btn-secondary px-8 py-3.5 rounded-full text-xs font-mono text-gray-300 hover:text-white hover:bg-white/10 border border-white/15 hover:border-white/30 transition-all uppercase tracking-wider">
                 ✕ Remove File
               </button>
             </div>
@@ -903,34 +898,6 @@ export default function LunarImageAnalysis() {
       {/* Results Dashboard */}
       {showResults && uploadedFile && apiResponse && (
         <div className="space-y-6 animate-fade-in">
-          {/* Stored Job Header Banner if viewing a past job */}
-          {selectedJobId && (
-            <div className="glass rounded-2xl border border-cyan-500/40 p-4 flex flex-col sm:flex-row items-center justify-between gap-3 bg-cyan-950/30 shadow-lg shadow-cyan-950/50">
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">📜</span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-cyan-300 font-bold uppercase tracking-wider">
-                      Viewing Saved Mission Run
-                    </span>
-                    <span className="px-2 py-0.5 rounded text-[0.6rem] font-mono bg-cyan-500/20 text-cyan-200 border border-cyan-500/40 font-bold">
-                      {selectedJobId.slice(0, 8)}…
-                    </span>
-                  </div>
-                  <p className="text-[0.65rem] font-mono text-gray-400 mt-0.5">
-                    Loaded historical inference data from MoonGrid database
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={resetAll}
-                className="px-4 py-2 rounded-xl text-xs font-mono bg-cyan-500 hover:bg-cyan-400 text-black font-bold transition-all shadow-md flex items-center gap-1.5"
-              >
-                <span>+ Upload New Image</span>
-              </button>
-            </div>
-          )}
-
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -946,18 +913,18 @@ export default function LunarImageAnalysis() {
             </div>
             <div className="flex items-center gap-3">
               {exportSuccess && (
-                <span className="text-[0.65rem] font-mono text-emerald-300 bg-emerald-950/80 px-3 py-1.5 rounded-xl border border-emerald-500/40 animate-fade-in flex items-center gap-1.5">
+                <span className="text-[0.65rem] font-mono text-emerald-300 bg-emerald-950/80 px-3 py-1.5 rounded-full border border-emerald-500/40 animate-fade-in flex items-center gap-1.5">
                   <span>✓</span> Mission Report Downloaded
                 </span>
               )}
               <button id="new-analysis-btn" onClick={resetAll}
-                className="px-5 py-2 rounded-xl text-xs font-mono bg-white/5 hover:bg-white/10 border border-white/10 text-white transition-all">
+                className="btn-secondary px-6 py-2.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/40 text-white transition-all shadow-md">
                 + New Analysis
               </button>
               <button id="export-results-btn"
                 onClick={exportReport}
                 disabled={isExporting}
-                className="px-5 py-2 rounded-xl text-xs font-mono bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 transition-all shadow-lg shadow-cyan-500/20 font-bold flex items-center gap-1.5 disabled:opacity-50">
+                className="btn-secondary px-6 py-2.5 rounded-full text-xs font-mono uppercase tracking-wider bg-white/10 hover:bg-white/20 border border-white/30 hover:border-white/50 text-white transition-all shadow-lg font-bold flex items-center gap-1.5 disabled:opacity-50">
                 <span>⬇</span>
                 <span>{isExporting ? 'Generating…' : 'Export Mission Report'}</span>
               </button>
@@ -993,7 +960,7 @@ export default function LunarImageAnalysis() {
                   </div>
                 )}
                 <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 text-[0.55rem] font-mono text-cyan-300 border border-cyan-500/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                  🔍 Click to Zoom
+                  Click to Zoom
                 </span>
               </div>
               <div className="text-[0.6rem] font-mono text-gray-500 flex justify-between">
@@ -1041,7 +1008,7 @@ export default function LunarImageAnalysis() {
                   </div>
                 )}
                 <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 text-[0.55rem] font-mono text-purple-300 border border-purple-500/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                  🔍 Click to Zoom
+                  Click to Zoom
                 </span>
               </div>
               <div className="text-[0.6rem] font-mono text-gray-500 flex justify-between">
@@ -1071,7 +1038,7 @@ export default function LunarImageAnalysis() {
                   <div className="w-full"><HazardGrid /></div>
                 )}
                 <span className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-black/80 text-[0.55rem] font-mono text-orange-300 border border-orange-500/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
-                  🔍 Click to Zoom
+                  Click to Zoom
                 </span>
               </div>
               <div className="flex gap-2 flex-wrap justify-between">
@@ -1098,7 +1065,7 @@ export default function LunarImageAnalysis() {
               <HazardBar label="Safe Surface Coverage" value={apiResponse.summary.percent_safe} color="bg-emerald-500" />
               <HazardBar label="Moderate Risk Terrain" value={apiResponse.summary.percent_moderate} color="bg-yellow-500" />
               <HazardBar label="Hazard Zone Coverage" value={apiResponse.summary.percent_hazardous} color="bg-red-500" />
-              
+
               <div className="mt-4 grid grid-cols-2 gap-2 text-[0.6rem] font-mono">
                 {[
                   { label: 'Craters', value: `${apiResponse.summary.total_craters} detected`, color: 'text-red-400' },

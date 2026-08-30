@@ -956,19 +956,22 @@ export default function LunarCesiumViewer() {
       {isCesiumLoaded && (
         <div className="absolute top-4 left-4 right-4 flex flex-wrap justify-between items-center z-20 gap-2 pointer-events-none">
           {/* Layer toggles */}
-          <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 p-2 rounded-xl bg-slate-950/85 backdrop-blur-xl border border-white/10 shadow-xl">
-            <span className="text-[0.6rem] font-mono text-gray-500 uppercase tracking-widest pr-1">Hazard Layers:</span>
+          <div className="pointer-events-auto flex flex-wrap items-center gap-2 p-2 px-3 rounded-full bg-slate-950/85 backdrop-blur-xl border border-white/15 shadow-2xl">
+            <span className="text-[0.62rem] font-mono text-gray-400 uppercase tracking-widest pl-1 pr-1">Hazards:</span>
             {[
-              { label: '🔴 Craters', active: showCraters, toggle: () => setShowCraters(v => !v), on: 'bg-red-500/20 border-red-400 text-red-300 shadow-sm shadow-red-500/20' },
-              { label: '🟡 Slopes', active: showSlopes, toggle: () => setShowSlopes(v => !v), on: 'bg-amber-500/20 border-amber-400 text-amber-300 shadow-sm shadow-amber-500/20' },
-              { label: '🟣 Shadows', active: showShadows, toggle: () => setShowShadows(v => !v), on: 'bg-indigo-500/20 border-indigo-400 text-indigo-300 shadow-sm shadow-indigo-500/20' },
-              { label: '🟢 Safe Zones', active: showSafe, toggle: () => setShowSafe(v => !v), on: 'bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-sm shadow-emerald-500/20' },
-            ].map(({ label, active, toggle, on }) => (
+              { label: 'Craters', active: showCraters, toggle: () => setShowCraters(v => !v) },
+              { label: 'Slopes', active: showSlopes, toggle: () => setShowSlopes(v => !v) },
+              { label: 'Shadows', active: showShadows, toggle: () => setShowShadows(v => !v) },
+              { label: 'Safe Zones', active: showSafe, toggle: () => setShowSafe(v => !v) },
+            ].map(({ label, active, toggle }) => (
               <button
                 key={label}
                 onClick={toggle}
-                className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-all border ${active ? on : 'bg-white/5 border-white/10 text-gray-500 hover:text-gray-300'
-                  }`}
+                className={`btn-secondary px-4 py-1.5 rounded-full text-xs font-mono font-medium tracking-wider uppercase transition-all border ${
+                  active
+                    ? 'bg-white/20 border-white/40 text-white shadow-[0_0_15px_rgba(255,255,255,0.25)]'
+                    : 'bg-white/5 border-white/10 text-gray-400 hover:text-white hover:border-white/25'
+                }`}
               >
                 {label}
               </button>
@@ -976,7 +979,7 @@ export default function LunarCesiumViewer() {
           </div>
 
           {/* Backend Connection Status (GET /lunar-sites) */}
-          <div className="pointer-events-auto flex items-center gap-2.5 p-2 px-3 rounded-xl bg-slate-950/85 backdrop-blur-xl border border-white/10 shadow-xl">
+          <div className="pointer-events-auto flex items-center gap-2.5 p-2 px-4 rounded-full bg-slate-950/85 backdrop-blur-xl border border-white/15 shadow-2xl">
             <button
               onClick={fetchSites}
               title="Refresh /lunar-sites from FastAPI backend"
@@ -996,41 +999,36 @@ export default function LunarCesiumViewer() {
 
       {/* ── Left Sidebar: Candidate Landing Sites ── */}
       {isCesiumLoaded && (
-        <div className="absolute top-20 left-4 z-20 w-80 max-w-[calc(50vw-2rem)] p-4 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl text-white space-y-3 pointer-events-auto">
+        <div className="absolute top-20 left-4 z-20 w-80 max-w-[calc(50vw-2rem)] p-4 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-white/15 shadow-2xl text-white space-y-3 pointer-events-auto">
           <div>
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-bold">Candidate Landing Sites</h4>
-              <span className="text-[0.6rem] font-mono text-gray-400">GET /lunar-sites</span>
-            </div>
-            <p className="text-[0.65rem] text-gray-400 font-light mt-0.5">Click a site to fly 3D Moon camera &amp; view real-time hazards</p>
+            <h4 className="text-xs font-mono uppercase tracking-widest text-gray-300 font-bold">Candidate Landing Sites</h4>
           </div>
 
-          <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+          <div className="space-y-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
             {sites.map((site) => {
               const isSelected = site.id === activeSite.id;
               return (
                 <button
                   key={site.id}
                   onClick={() => flyToSite(site)}
-                  className={`w-full text-left p-2.5 rounded-xl border transition-all duration-300 ${isSelected
-                    ? 'bg-cyan-500/15 border-cyan-400 shadow-md shadow-cyan-500/20'
-                    : 'bg-white/4 border-white/8 hover:bg-white/10 hover:border-white/20'
+                  className={`w-full text-left p-3 rounded-2xl border transition-all duration-300 ${isSelected
+                    ? 'bg-white/15 border-white/40 shadow-lg shadow-sky-500/10'
+                    : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/25'
                     }`}
                 >
                   <div className="flex justify-between items-start gap-2">
-                    <span className="text-xs font-bold text-gray-100 font-heading leading-tight">{site.name}</span>
-                    <span className={`flex-shrink-0 text-[0.6rem] font-mono px-1.5 py-0.5 rounded border ${site.risk_score < 0.12 ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' :
-                      site.risk_score < 0.20 ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40' :
-                        'bg-orange-500/20 text-orange-300 border-orange-500/40'
-                      }`}>
+                    <span className="text-xs font-bold text-gray-100 font-serif tracking-wide leading-tight">{site.name}</span>
+                    <span className="flex-shrink-0 text-[0.62rem] font-mono px-2 py-0.5 rounded-full border border-white/20 bg-white/10 text-gray-200">
                       {site.risk_label} ({site.risk_score})
                     </span>
                   </div>
-                  <p className="text-[0.62rem] text-gray-400 mt-0.5 line-clamp-1">{site.region}</p>
-                  <div className="flex gap-2.5 mt-1 text-[0.58rem] font-mono text-cyan-300/80">
-                    <span>🕳 {site.hazards.craters.length} craters</span>
-                    <span>⛰ slope {site.slope_deg}°</span>
-                    <span>🟢 {site.hazards.safe_zones.length} safe zone{site.hazards.safe_zones.length !== 1 ? 's' : ''}</span>
+                  <p className="text-[0.65rem] text-gray-400 mt-1 line-clamp-1">{site.region}</p>
+                  <div className="flex gap-2.5 mt-2 text-[0.6rem] font-mono text-gray-300">
+                    <span>{site.hazards.craters.length} craters</span>
+                    <span>•</span>
+                    <span>slope {site.slope_deg}°</span>
+                    <span>•</span>
+                    <span>{site.hazards.safe_zones.length} safe zone{site.hazards.safe_zones.length !== 1 ? 's' : ''}</span>
                   </div>
                 </button>
               );
@@ -1039,7 +1037,7 @@ export default function LunarCesiumViewer() {
 
           {/* Simulation status pill */}
           {isSimulating && (
-            <div className="flex items-center gap-2 p-2 rounded-xl bg-cyan-950/60 border border-cyan-500/40 animate-pulse">
+            <div className="flex items-center gap-2 p-2 px-3 rounded-full bg-cyan-950/60 border border-cyan-500/40 animate-pulse">
               <div className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />
               <span className="text-[0.65rem] font-mono text-cyan-300 font-bold uppercase tracking-wider">{telemetry.status}</span>
             </div>
@@ -1049,18 +1047,15 @@ export default function LunarCesiumViewer() {
           <button
             onClick={startLanderSimulation}
             disabled={isSimulating}
-            className="w-full py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-600 to-teal-500 hover:from-blue-500 hover:to-teal-400 text-white font-mono text-xs font-bold uppercase tracking-wider shadow-lg shadow-cyan-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="btn-secondary w-full py-3.5 rounded-full text-xs font-mono font-bold tracking-widest uppercase text-white flex items-center justify-center gap-2 border border-white/25 hover:border-white/50 bg-white/5 hover:bg-white/15 shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isSimulating ? (
               <>
-                <div className="w-3 h-3 rounded-full border-2 border-white/40 border-t-white animate-spin" />
+                <div className="w-3.5 h-3.5 rounded-full border-2 border-white/40 border-t-white animate-spin" />
                 <span>Simulating Descent…</span>
               </>
             ) : (
-              <>
-                <span></span>
-                <span>Simulate Lander Descent</span>
-              </>
+              <span>Simulate Lander Descent</span>
             )}
           </button>
         </div>
@@ -1068,21 +1063,21 @@ export default function LunarCesiumViewer() {
 
       {/* ── Right Sidebar: Descent Telemetry HUD ── */}
       {isCesiumLoaded && (
-        <div className="absolute top-20 right-4 z-20 w-72 max-w-[calc(50vw-2rem)] p-4 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-white/10 shadow-2xl text-white space-y-3 pointer-events-auto">
+        <div className="absolute top-20 right-4 z-20 w-72 max-w-[calc(50vw-2rem)] p-4 rounded-2xl bg-slate-950/90 backdrop-blur-xl border border-white/15 shadow-2xl text-white space-y-3 pointer-events-auto">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <h4 className="text-xs font-mono uppercase tracking-widest text-cyan-400 font-bold">Descent Telemetry HUD</h4>
-            <span className={`text-[0.6rem] font-mono px-2 py-0.5 rounded border ${telemetry.status === 'TOUCHDOWN SUCCESS'
+            <h4 className="text-xs font-mono uppercase tracking-widest text-gray-300 font-bold">Descent Telemetry HUD</h4>
+            <span className={`text-[0.6rem] font-mono px-2.5 py-0.5 rounded-full border ${telemetry.status === 'TOUCHDOWN SUCCESS'
               ? 'text-emerald-300 bg-emerald-950/80 border-emerald-500/50 font-bold'
               : isSimulating
                 ? 'text-amber-300 bg-amber-950/60 border-amber-500/40 animate-pulse'
-                : 'text-gray-400 bg-white/5 border-white/10'
+                : 'text-gray-300 bg-white/5 border-white/15'
               }`}>
               {telemetry.status}
             </span>
           </div>
 
           {/* Descent profile graph */}
-          <div className="p-2.5 rounded-xl bg-black/60 border border-white/10 space-y-1.5">
+          <div className="p-3 rounded-2xl bg-black/60 border border-white/10 space-y-1.5">
             <div className="flex justify-between items-center text-[0.6rem] font-mono">
               <span className="text-gray-400 uppercase tracking-wider">Descent Curve Profile</span>
               <div className="flex items-center gap-2">
@@ -1090,7 +1085,7 @@ export default function LunarCesiumViewer() {
                 <span className="flex items-center gap-1 text-amber-400"><span className="w-1.5 h-1.5 rounded-full bg-amber-400" />Vel</span>
               </div>
             </div>
-            <div className="w-full bg-slate-950/80 rounded-lg p-1 border border-white/5">
+            <div className="w-full bg-slate-950/80 rounded-xl p-1 border border-white/5">
               <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-14 overflow-visible">
                 <line x1="0" y1="15" x2={svgW} y2="15" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
                 <line x1="0" y1="35" x2={svgW} y2="35" stroke="rgba(255,255,255,0.06)" strokeDasharray="3 3" />
@@ -1115,14 +1110,14 @@ export default function LunarCesiumViewer() {
           {/* Metric grid */}
           <div className="grid grid-cols-2 gap-2">
             {[
-              { label: 'Altitude', value: `${telemetry.altitude.toLocaleString()} m`, color: 'text-cyan-300' },
-              { label: 'Velocity', value: `${telemetry.velocity} m/s`, color: 'text-amber-300' },
-              { label: 'Slope Angle', value: `${telemetry.slope_deg}°`, color: 'text-emerald-300' },
-              { label: 'Risk Score', value: telemetry.risk_score, color: 'text-rose-300' },
-            ].map(({ label, value, color }) => (
-              <div key={label} className="p-2 rounded-lg bg-white/5 border border-white/8">
-                <span className="text-[0.58rem] font-mono text-gray-400 uppercase tracking-wider">{label}</span>
-                <div className={`text-xs font-mono font-bold mt-0.5 ${color}`}>{value}</div>
+              { label: 'Altitude', value: `${telemetry.altitude.toLocaleString()} m` },
+              { label: 'Velocity', value: `${telemetry.velocity} m/s` },
+              { label: 'Slope Angle', value: `${telemetry.slope_deg}°` },
+              { label: 'Risk Score', value: telemetry.risk_score },
+            ].map(({ label, value }) => (
+              <div key={label} className="p-3 rounded-2xl bg-white/5 border border-white/15 backdrop-blur-md transition-all hover:border-white/30">
+                <span className="text-[0.58rem] font-mono text-gray-400 uppercase tracking-widest">{label}</span>
+                <div className="text-xs font-mono font-bold mt-1 text-white tracking-wide">{value}</div>
               </div>
             ))}
           </div>
@@ -1143,10 +1138,10 @@ export default function LunarCesiumViewer() {
           </div>
 
           {/* Active Site Details */}
-          <div className="p-2.5 rounded-xl bg-blue-950/30 border border-blue-500/20 text-[0.62rem] font-mono space-y-1">
-            <div className="flex items-center justify-between text-blue-300 font-bold">
+          <div className="p-3 rounded-2xl bg-white/5 border border-white/15 text-[0.62rem] font-mono space-y-1">
+            <div className="flex items-center justify-between text-white font-bold">
               <span>{activeSite.name}</span>
-              <span className="text-cyan-400 font-normal">{activeSite.lat}°, {activeSite.lon}°</span>
+              <span className="text-gray-400 font-normal">{activeSite.lat}°, {activeSite.lon}°</span>
             </div>
             <p className="text-gray-400 leading-relaxed font-sans text-[0.6rem]">{activeSite.description}</p>
           </div>

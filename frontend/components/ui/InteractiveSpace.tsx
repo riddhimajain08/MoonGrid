@@ -83,17 +83,17 @@ export default function InteractiveSpace() {
 
     // ── Nebula Rings ──────────────────────────────────────────────────────
     const nebulaRings: NebulaRing[] = [
-      { cx: width * 0.5, cy: height * 0.5, rx: width * 0.55, ry: height * 0.3,  rotation: 0,           rotationSpeed:  0.0003,  color1: 'rgba(74,144,226,',  color2: 'rgba(139,92,246,', alpha: 0.12, lineWidth: 80 },
-      { cx: width * 0.5, cy: height * 0.5, rx: width * 0.38, ry: height * 0.22, rotation: Math.PI / 3, rotationSpeed: -0.0005,  color1: 'rgba(6,182,212,',   color2: 'rgba(236,72,153,', alpha: 0.10, lineWidth: 60 },
-      { cx: width * 0.5, cy: height * 0.5, rx: width * 0.68, ry: height * 0.42, rotation: Math.PI / 6, rotationSpeed:  0.00018, color1: 'rgba(139,92,246,',  color2: 'rgba(6,182,212,',  alpha: 0.07, lineWidth: 100 },
-      { cx: width * 0.5, cy: height * 0.5, rx: width * 0.28, ry: height * 0.16, rotation: Math.PI / 2, rotationSpeed: -0.00035, color1: 'rgba(251,191,36,',  color2: 'rgba(74,144,226,', alpha: 0.06, lineWidth: 40 },
+      { cx: width * 0.5, cy: height * 0.5, rx: width * 0.55, ry: height * 0.3,  rotation: 0,           rotationSpeed:  0.0003,  color1: 'rgba(56,189,248,',  color2: 'rgba(148,163,184,', alpha: 0.08, lineWidth: 80 },
+      { cx: width * 0.5, cy: height * 0.5, rx: width * 0.38, ry: height * 0.22, rotation: Math.PI / 3, rotationSpeed: -0.0005,  color1: 'rgba(2,132,199,',   color2: 'rgba(226,232,240,', alpha: 0.06, lineWidth: 60 },
+      { cx: width * 0.5, cy: height * 0.5, rx: width * 0.68, ry: height * 0.42, rotation: Math.PI / 6, rotationSpeed:  0.00018, color1: 'rgba(148,163,184,',  color2: 'rgba(56,189,248,',  alpha: 0.05, lineWidth: 100 },
+      { cx: width * 0.5, cy: height * 0.5, rx: width * 0.28, ry: height * 0.16, rotation: Math.PI / 2, rotationSpeed: -0.00035, color1: 'rgba(203,213,225,',  color2: 'rgba(14,165,233,',  alpha: 0.04, lineWidth: 40 },
     ];
 
     // ── Aurora Arcs ───────────────────────────────────────────────────────
     const auroraColors = [
-      ['rgba(6,182,212,', 'rgba(139,92,246,'],
-      ['rgba(74,144,226,', 'rgba(236,72,153,'],
-      ['rgba(16,185,129,', 'rgba(6,182,212,'],
+      ['rgba(56,189,248,', 'rgba(148,163,184,'],
+      ['rgba(14,165,233,', 'rgba(226,232,240,'],
+      ['rgba(125,211,252,', 'rgba(56,189,248,'],
     ];
     const auroraArcs: AuroraArc[] = Array.from({ length: 5 }, (_, i) => {
       const cols = auroraColors[i % auroraColors.length];
@@ -103,16 +103,16 @@ export default function InteractiveSpace() {
           y: height * (0.3 + Math.random() * 0.4),
         })),
         color: cols[0],
-        alpha: Math.random() * 0.12 + 0.04,
+        alpha: Math.random() * 0.08 + 0.02,
         phase: Math.random() * Math.PI * 2,
-        speed: Math.random() * 0.008 + 0.003,
+        speed: Math.random() * 0.006 + 0.002,
         width: Math.random() * 80 + 40,
       };
     });
 
     // ── Galaxy dust emitter ───────────────────────────────────────────────
     const galaxyDust: GalaxyDust[] = [];
-    const dustColors = ['#4a90e2', '#8b5cf6', '#06b6d4', '#f43f5e', '#fbbf24', '#ffffff'];
+    const dustColors = ['#38bdf8', '#7dd3fc', '#94a3b8', '#cbd5e1', '#e2e8f0', '#ffffff'];
 
     const emitDust = () => {
       if (galaxyDust.length > 50) return;  // reduced cap
@@ -126,7 +126,7 @@ export default function InteractiveSpace() {
         y: cy + Math.sin(angle) * r,
         vx: Math.cos(angle + Math.PI / 2) * speed * (Math.random() < 0.5 ? 1 : -1),
         vy: Math.sin(angle + Math.PI / 2) * speed * (Math.random() < 0.5 ? 1 : -1),
-        alpha: Math.random() * 0.4 + 0.1,
+        alpha: Math.random() * 0.3 + 0.05,
         size: Math.random() * 1.5 + 0.5,
         color: dustColors[Math.floor(Math.random() * dustColors.length)],
         life, maxLife: life,
@@ -142,7 +142,7 @@ export default function InteractiveSpace() {
       const angle = Math.PI / 4 + (Math.random() * 0.3 - 0.15);
       const startX = forcedX ?? Math.random() * width * 1.2 - width * 0.2;
       const startY = forcedY ?? Math.random() * height * 0.4 - height * 0.2;
-      const colors = ['#60a5fa', '#a78bfa', '#38bdf8', '#f43f5e', '#ffffff', '#fbbf24'];
+      const colors = ['#ffffff', '#bae6fd', '#7dd3fc', '#38bdf8', '#e2e8f0'];
       meteors.push({
         x: startX, y: startY,
         length: Math.random() * 140 + 80,

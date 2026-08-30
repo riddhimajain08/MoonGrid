@@ -53,17 +53,22 @@ export default function Home() {
 
       {/* --- Loading Screen --- */}
       {isLoading && (
-        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#010103]">
-          <div className="relative w-32 h-32 mb-8 animate-spin-slow">
-            <div className="absolute inset-0 rounded-full border-t-2 border-r-2 border-[#4a90e2] opacity-50"></div>
-            <div className="absolute inset-2 rounded-full border-b-2 border-l-2 border-[#8b5cf6] opacity-70"></div>
-            <div className="absolute inset-4 rounded-full border-t-2 border-[#06b6d4] opacity-90"></div>
-            <div className="absolute inset-8 rounded-full bg-gradient-to-tr from-gray-600 via-gray-300 to-white shadow-[0_0_25px_rgba(255,255,255,0.4)]"></div>
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#020408]">
+          <div className="relative w-28 h-28 mb-8 flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border border-sky-400/40 animate-spin-slow"></div>
+            <div className="absolute -inset-2 rounded-full border border-slate-500/30 animate-[spin-slow_15s_linear_infinite_reverse]"></div>
+            <div className="relative w-24 h-24 rounded-full overflow-hidden border-2 border-white/30 shadow-[0_0_35px_rgba(56,189,248,0.35)]">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-mark.png"
+                alt="MoonGrid Logo"
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
           <h2 className="font-heading text-2xl tracking-[0.3em] text-white animate-pulse">INITIATING MoonGrid</h2>
-          <p className="text-xs font-mono text-cyan-400 mt-2">Loading 3D Spline &amp; Geospatial Modules...</p>
-          <div className="w-64 h-1 mt-6 bg-gray-800 rounded-full overflow-hidden">
-            <div className="h-full bg-gradient-to-r from-[#4a90e2] via-[#06b6d4] to-[#8b5cf6] w-full origin-left animate-[scale-x_2s_ease-in-out_infinite]"></div>
+          <div className="w-64 h-1 mt-6 bg-slate-800/80 rounded-full overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-slate-400 via-sky-400 to-slate-200 w-full origin-left animate-[scale-x_2s_ease-in-out_infinite]"></div>
           </div>
         </div>
       )}
@@ -99,22 +104,20 @@ export default function Home() {
               />
             </div>
             <div className="flex flex-col">
-              <h1 className="font-serif font-bold text-2xl md:text-3xl tracking-wide text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.75)]">
+              <h1 className="font-serif font-bold text-4xl md:text-3xl tracking-wide text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.75)]">
                 MoonGrid
               </h1>
-              <p className="text-[0.6rem] uppercase tracking-widest text-cyan-300 font-mono">
-                Hazard Mapping &amp; 3D Navigation
-              </p>
+
             </div>
           </div>
 
           {/* Main Navigation Tabs */}
-          <nav className="flex items-center space-x-1 sm:space-x-3 bg-slate-950/80 p-1.5 rounded-full border border-white/10 shadow-xl">
+          <nav className="flex items-center space-x-1 sm:space-x-2 bg-slate-950/85 p-1.5 rounded-full border border-white/10 shadow-xl">
             <button
               onClick={() => setActiveView('hero')}
               className={`px-4 py-2 rounded-full text-xs font-mono font-semibold uppercase tracking-wider transition-all duration-300 ${activeView === 'hero'
-                  ? 'bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-lg shadow-cyan-500/20'
-                  : 'text-gray-300 hover:text-white hover:bg-white/5'
+                ? 'bg-sky-500/20 border border-sky-400/40 text-sky-200 shadow-md shadow-sky-500/15'
+                : 'text-gray-300 hover:text-white hover:bg-white/5 border border-transparent'
                 }`}
             >
               Home
@@ -123,18 +126,18 @@ export default function Home() {
             <button
               onClick={() => setActiveView('cesium')}
               className={`px-4 py-2 rounded-full text-xs font-mono font-semibold uppercase tracking-wider transition-all duration-300 ${activeView === 'cesium'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-500 text-white shadow-lg shadow-purple-500/20'
-                  : 'text-gray-300 hover:text-white hover:bg-white/5'
+                ? 'bg-sky-500/20 border border-sky-400/40 text-sky-200 shadow-md shadow-sky-500/15'
+                : 'text-gray-300 hover:text-white hover:bg-white/5 border border-transparent'
                 }`}
             >
-              Cesium 3D Map
+              3D Map
             </button>
 
             <button
               onClick={() => setActiveView('workflow')}
               className={`px-4 py-2 rounded-full text-xs font-mono font-semibold uppercase tracking-wider transition-all duration-300 ${activeView === 'workflow'
-                  ? 'bg-gradient-to-r from-teal-600 to-emerald-500 text-white shadow-lg shadow-emerald-500/20'
-                  : 'text-gray-300 hover:text-white hover:bg-white/5'
+                ? 'bg-sky-500/20 border border-sky-400/40 text-sky-200 shadow-md shadow-sky-500/15'
+                : 'text-gray-300 hover:text-white hover:bg-white/5 border border-transparent'
                 }`}
             >
               Image Analysis
@@ -161,9 +164,9 @@ export default function Home() {
               <div className="interactive pointer-events-auto mt-10 flex flex-col sm:flex-row gap-4 animate-slide-up delay-400">
                 <button
                   onClick={() => setActiveView('cesium')}
-                  className="btn-primary glass px-8 py-4 rounded-full text-xs font-mono font-bold tracking-widest uppercase text-white shadow-xl flex items-center justify-center gap-2"
+                  className="btn-secondary px-8 py-4 rounded-full text-xs font-mono font-bold tracking-widest uppercase text-white flex items-center justify-center gap-2"
                 >
-                  <span>Launch 3D Cesium Map</span>
+                  <span>Launch 3D Map</span>
                   <span></span>
                 </button>
                 <button
@@ -193,17 +196,14 @@ export default function Home() {
             <div className="mb-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <h2 className="text-2xl md:text-3xl font-heading font-black text-white tracking-wider flex items-center gap-3">
-                  <span> CESIUMJS 3D LUNAR HAZARD EXPLORER</span>
+                  <span>3D LUNAR HAZARD EXPLORER</span>
                 </h2>
-                <p className="text-xs font-mono text-cyan-400 mt-1">
-                  Interactive 3D Moon Surface • Dynamic Hazard Layers • Lander Descent Simulation
-                </p>
               </div>
 
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setActiveView('hero')}
-                  className="px-4 py-2 rounded-xl text-xs font-mono bg-white/10 hover:bg-white/20 border border-white/10 text-white transition-all"
+                  className="btn-secondary px-6 py-2.5 rounded-full text-xs font-mono font-bold uppercase tracking-wider text-white border border-white/20 hover:border-white/40 bg-white/5 hover:bg-white/10 transition-all flex items-center gap-1.5 shadow-lg"
                 >
                   ⬅ Home
                 </button>
