@@ -18,9 +18,9 @@ interface UploadedFile {
 interface PipelineStage {
   id: number;
   key: string;
+  stepNumber: string;
   label: string;
   sublabel: string;
-  icon: string;
   color: string;
   borderColor: string;
   textColor: string;
@@ -80,9 +80,9 @@ const PIPELINE_STAGES: PipelineStage[] = [
   {
     id: 1,
     key: 'preprocess',
+    stepNumber: 'STEP 01',
     label: 'Pre-processing',
     sublabel: 'Noise reduction & radiometric calibration',
-    icon: '⚙️',
     color: 'from-blue-500/20 to-cyan-500/20',
     borderColor: 'border-blue-500/40',
     textColor: 'text-blue-400',
@@ -92,9 +92,9 @@ const PIPELINE_STAGES: PipelineStage[] = [
   {
     id: 2,
     key: 'superres',
+    stepNumber: 'STEP 02',
     label: 'Super-Resolution',
     sublabel: '5m → ~1m via RRDB / SwinIR',
-    icon: '🔬',
     color: 'from-purple-500/20 to-indigo-500/20',
     borderColor: 'border-purple-500/40',
     textColor: 'text-purple-400',
@@ -104,9 +104,9 @@ const PIPELINE_STAGES: PipelineStage[] = [
   {
     id: 3,
     key: 'hazard',
+    stepNumber: 'STEP 03',
     label: 'Hazard Detection',
     sublabel: 'Craters · Steep Slopes · Deep Shadows',
-    icon: '🕳️',
     color: 'from-orange-500/20 to-red-500/20',
     borderColor: 'border-orange-500/40',
     textColor: 'text-orange-400',
@@ -116,9 +116,9 @@ const PIPELINE_STAGES: PipelineStage[] = [
   {
     id: 4,
     key: 'risk',
+    stepNumber: 'STEP 04',
     label: 'Risk Scoring',
     sublabel: 'Multi-hazard 1m risk-map fusion',
-    icon: '🗺️',
     color: 'from-yellow-500/20 to-amber-500/20',
     borderColor: 'border-yellow-500/40',
     textColor: 'text-yellow-400',
@@ -128,9 +128,9 @@ const PIPELINE_STAGES: PipelineStage[] = [
   {
     id: 5,
     key: 'landing',
+    stepNumber: 'STEP 05',
     label: 'Safe Zone Detection',
     sublabel: 'Topological safe site identification',
-    icon: '🎯',
     color: 'from-emerald-500/20 to-green-500/20',
     borderColor: 'border-emerald-500/40',
     textColor: 'text-emerald-400',
@@ -546,7 +546,7 @@ export default function LunarImageAnalysis() {
                 : 'bg-white/5 hover:bg-white/10 text-cyan-300 border-cyan-500/30'
             }`}
           >
-            <span>📜</span>
+            
             <span>Past Predictions ({jobs.length})</span>
           </button>
         </div>
@@ -737,7 +737,7 @@ export default function LunarImageAnalysis() {
                     : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white hover:from-cyan-500 hover:to-blue-500 hover:scale-105 shadow-lg shadow-cyan-500/20'
                   }`}
               >
-                {isProcessing ? '⏳ Analysing…' : '🚀 Run Analysis'}
+                {isProcessing ? ' Analysing…' : ' Run Analysis'}
               </button>
               <button id="upload-new-btn" onClick={resetAll}
                 className="px-8 py-3 rounded-xl text-xs font-mono text-gray-400 hover:text-white hover:bg-white/10 border border-white/10 transition-all">
@@ -759,9 +759,11 @@ export default function LunarImageAnalysis() {
                     ${isActive ? `bg-gradient-to-br ${stage.color} ${stage.borderColor} shadow-xl scale-[1.03]` : ''}
                     ${isPending ? 'bg-white/2 border-white/8 opacity-50' : ''}
                   `}>
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-2xl">{stage.icon}</span>
-                    {isDone && <span className="text-emerald-400 text-sm font-bold">✓</span>}
+                  <div className="flex items-center justify-between mb-3">
+                    <span className={`text-[0.65rem] font-mono font-bold px-2 py-0.5 rounded-md border uppercase tracking-wider ${stage.badgeColor}`}>
+                      {stage.stepNumber}
+                    </span>
+                    {isDone && <span className="text-emerald-400 text-xs font-mono font-bold">✓ DONE</span>}
                     {isActive && <span className={`w-2 h-2 rounded-full animate-pulse ${stage.textColor.replace('text-', 'bg-')}`} />}
                   </div>
                   <p className={`text-xs font-mono font-bold mb-0.5 ${isDone || isActive ? stage.textColor : 'text-gray-600'}`}>

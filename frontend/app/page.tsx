@@ -87,15 +87,20 @@ export default function Home() {
         {/* Navigation Bar */}
         <header className="interactive pointer-events-auto glass sticky top-0 w-full flex justify-between items-center px-6 md:px-12 py-4 z-40 backdrop-blur-xl border-b border-white/10">
           <div
-            className="flex items-center gap-3 cursor-pointer group"
+            className="flex items-center gap-3.5 cursor-pointer group"
             onClick={() => setActiveView('hero')}
           >
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center font-bold text-lg shadow-lg group-hover:scale-110 transition-transform">
-              🌑
+            <div className="relative w-11 h-11 rounded-full overflow-hidden border border-white/20 shadow-[0_0_15px_rgba(255,255,255,0.35)] group-hover:scale-105 group-hover:shadow-[0_0_25px_rgba(255,255,255,0.7)] transition-all duration-300">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/logo-mark.png"
+                alt="MoonGrid MG Logo"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div className="flex flex-col">
-              <h1 className="font-heading font-black text-2xl md:text-3xl tracking-[8px] text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]">
-                Moon<span className="text-cyan-400">Grid</span>
+              <h1 className="font-serif font-bold text-2xl md:text-3xl tracking-wide text-white drop-shadow-[0_0_12px_rgba(255,255,255,0.75)]">
+                MoonGrid
               </h1>
               <p className="text-[0.6rem] uppercase tracking-widest text-cyan-300 font-mono">
                 Hazard Mapping &amp; 3D Navigation
